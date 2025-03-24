@@ -1,6 +1,5 @@
 import type { Product } from "../../Types"
 import axios from "../axios"
-import { put } from "@vercel/blob"
 
 interface GetProductsParams {
   categoryId?: number
@@ -11,6 +10,46 @@ interface GetProductsParams {
   page?: number
   limit?: number
   sort?: string
+}
+
+// Helper function to upload a file to Vercel Blob via our API route
+async function uploadToBlob(file: File, folder = "products"): Promise<string> {
+  try {
+    console.log(`Uploading file to Blob via API route:`, file.name, file.type, file.size);
+    
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("folder", folder);
+    
+    const response = await fetch("/lib/api/upload-blob", {
+      method: "POST",
+      body: formData,
+    });
+    
+    // Check if the response is OK
+    if (!response.ok) {
+      // Try to parse the response as JSON
+      let errorData;
+      const contentType = response.headers.get("content-type");
+      
+      if (contentType && contentType.includes("application/json")) {
+        errorData = await response.json();
+        throw new Error(errorData.error || `Upload failed with status: ${response.status}`);
+      } else {
+        // If it's not JSON, get the text
+        const errorText = await response.text();
+        console.error("Non-JSON error response:", errorText.substring(0, 500)); // Log first 500 chars
+        throw new Error(`Upload failed with status: ${response.status}. Server returned non-JSON response.`);
+      }
+    }
+    
+    const data = await response.json();
+    console.log(`Successfully uploaded to Blob:`, data.url);
+    return data.url;
+  } catch (error: any) {
+    console.error(`Error uploading file to Blob:`, error);
+    throw new Error(`Failed to upload file: ${error.message}`);
+  }
 }
 
 export const getProducts = async (params?: GetProductsParams): Promise<Product[]> => {
@@ -95,87 +134,69 @@ export const searchProducts = async (query: string): Promise<Product[]> => {
   }
 }
 
-// Updated to use Vercel Blob for image storage with explicit token
 export const createProduct = async (productData: FormData): Promise<Product> => {
   try {
     console.log("Starting product creation with images")
-
+    
     // Extract images from FormData
     const imageFiles: File[] = []
-
+    
     // Get all images from FormData
-    for (let i = 0; i < 10; i++) {
-      // Check up to 10 images to be safe
+    for (let i = 0; i < 10; i++) { // Check up to 10 images to be safe
       const key = `images[${i}]`
       const imageFile = productData.get(key) as File | null
-
+      
       if (imageFile && imageFile instanceof File && imageFile.size > 0) {
         console.log(`Found image at ${key}:`, imageFile.name, imageFile.type, imageFile.size)
         imageFiles.push(imageFile)
       }
     }
-
+    
     console.log(`Found ${imageFiles.length} images to upload to Blob`)
-
+    
     // Create a new FormData object without the image files
     const newFormData = new FormData()
-
+    
     // Copy all non-image entries from the original FormData
     for (const [key, value] of Array.from(productData.entries())) {
-      if (!key.startsWith("images[")) {
+      if (!key.startsWith('images[')) {
         newFormData.append(key, value)
       }
     }
-
-    // Upload each image to Vercel Blob and add URLs to the new FormData
+    
+    // Upload each image to Vercel Blob via our API route and add URLs to the new FormData
     if (imageFiles.length > 0) {
       for (let i = 0; i < imageFiles.length; i++) {
         const imageFile = imageFiles[i]
         try {
-          console.log(`Uploading image ${i + 1}/${imageFiles.length} to Blob:`, imageFile.name)
-
-          // Get the token from environment variable
-          const blobToken = process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN
-
-          if (!blobToken) {
-            console.error("NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN is not defined")
-            throw new Error(
-              "Blob token is not configured. Please add NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN to your environment variables.",
-            )
-          }
-
-          // Upload to Vercel Blob with explicit token
-          const blob = await put(`products/${Date.now()}-${imageFile.name}`, imageFile, {
-            access: "public",
-            addRandomSuffix: true,
-            token: blobToken,
-          })
-
-          console.log(`Successfully uploaded to Blob:`, blob.url)
-
+          console.log(`Uploading image ${i+1}/${imageFiles.length} to Blob:`, imageFile.name)
+          
+          // Upload via our API route
+          const imageUrl = await uploadToBlob(imageFile, 'products')
+          
           // Add the Blob URL to the new FormData
           // Use image_urls[] format which Laravel can properly parse as an array
-          newFormData.append("image_urls[]", blob.url)
+          newFormData.append('image_urls[]', imageUrl)
         } catch (uploadError: any) {
-          console.error(`Error uploading image ${i + 1} to Blob:`, uploadError)
-          throw new Error(`Failed to upload image to Vercel Blob: ${uploadError.message}`)
+          console.error(`Error uploading image ${i+1} to Blob:`, uploadError)
+          throw new Error(`Failed to upload image: ${uploadError.message}`)
         }
       }
     }
-
+    
     // Log the final FormData before sending to backend
     console.log("Final FormData entries:")
     for (const pair of newFormData.entries()) {
       console.log(pair[0], pair[1])
     }
-
+    
     // Send to backend
     const response = await axios.post("/products", newFormData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
     })
-
+    
     console.log("Product created successfully:", response.data)
     return response.data
   } catch (error: any) {
@@ -184,80 +205,62 @@ export const createProduct = async (productData: FormData): Promise<Product> => 
   }
 }
 
-// Update the updateProduct function to use Vercel Blob with explicit token
 export const updateProduct = async (id: string, productData: FormData): Promise<Product> => {
   try {
     console.log("Updating product with ID:", id)
-
+    
     // Log the initial form data
     console.log("Initial FormData entries:")
     for (const pair of productData.entries()) {
       console.log(pair[0], pair[1])
     }
-
+    
     // Extract new images from FormData
     const newImageFiles: File[] = []
-
+    
     // Get all new images from FormData
-    for (let i = 0; i < 10; i++) {
-      // Check up to 10 images to be safe
+    for (let i = 0; i < 10; i++) { // Check up to 10 images to be safe
       const key = `new_images[${i}]`
       const imageFile = productData.get(key) as File | null
-
+      
       if (imageFile && imageFile instanceof File && imageFile.size > 0) {
         console.log(`Found new image at ${key}:`, imageFile.name, imageFile.type, imageFile.size)
         newImageFiles.push(imageFile)
       }
     }
-
+    
     console.log(`Found ${newImageFiles.length} new images to upload to Blob`)
-
+    
     // Create a new FormData object without the new image files
     const newFormData = new FormData()
-
+    
     // Copy all non-new-image entries from the original FormData
     for (const [key, value] of Array.from(productData.entries())) {
-      if (!key.startsWith("new_images[")) {
+      if (!key.startsWith('new_images[')) {
         newFormData.append(key, value)
       }
     }
-
-    // Upload each new image to Vercel Blob
+    
+    // Upload each new image to Vercel Blob via our API route
     if (newImageFiles.length > 0) {
       for (let i = 0; i < newImageFiles.length; i++) {
         const imageFile = newImageFiles[i]
         try {
-          console.log(`Uploading new image ${i + 1}/${newImageFiles.length} to Blob:`, imageFile.name)
-
-          // Get the token from environment variable
-          const blobToken = process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN 
-
-          if (!blobToken) {
-            console.error("NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN is not defined")
-            throw new Error(
-              "Blob token is not configured. Please add NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN to your environment variables.",
-            )
-          }
-
-          // Upload to Vercel Blob with explicit token
-          const blob = await put(`products/${id}/${Date.now()}-${imageFile.name}`, imageFile, {
-            access: "public",
-            addRandomSuffix: true,
-            token: blobToken,
-          })
-
-          console.log(`Successfully uploaded to Blob:`, blob.url)
-
+          console.log(`Uploading new image ${i+1}/${newImageFiles.length} to Blob:`, imageFile.name)
+          
+          // Upload via our API route
+          const imageUrl = await uploadToBlob(imageFile, `products/${id}`)
+          
           // Add the Blob URL to the new FormData
           // Use new_image_urls[] format which Laravel can properly parse as an array
-          newFormData.append("new_image_urls[]", blob.url)
+          newFormData.append('new_image_urls[]', imageUrl)
         } catch (uploadError: any) {
-          console.error(`Error uploading new image ${i + 1} to Blob:`, uploadError)
-          throw new Error(`Failed to upload image to Vercel Blob: ${uploadError.message}`)
+          console.error(`Error uploading new image ${i+1} to Blob:`, uploadError)
+          throw new Error(`Failed to upload image: ${uploadError.message}`)
         }
       }
     }
-
+    
     // Log the final FormData before sending to backend
     console.log("Final FormData entries:")
     for (const pair of newFormData.entries()) {
@@ -270,7 +273,7 @@ export const updateProduct = async (id: string, productData: FormData): Promise<
         "Content-Type": "multipart/form-data",
       },
     })
-
+    
     console.log("Product updated successfully:", response.data)
     return response.data
   } catch (error: any) {
@@ -297,33 +300,16 @@ export const deleteProduct = async (id: string): Promise<void> => {
   }
 }
 
-// Updated to use Vercel Blob with explicit token
 export const addProductImage = async (productId: string, imageFile: File): Promise<any> => {
   try {
     console.log(`Uploading image for product ${productId} to Blob:`, imageFile.name)
-
-    // Get the token from environment variable
-    const blobToken = process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN
-
-    if (!blobToken) {
-      console.error("NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN is not defined")
-      throw new Error(
-        "Blob token is not configured. Please add NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN to your environment variables.",
-      )
-    }
-
-    // Upload to Vercel Blob with explicit token
-    const blob = await put(`products/${productId}/${Date.now()}-${imageFile.name}`, imageFile, {
-      access: "public",
-      addRandomSuffix: true,
-      token: blobToken,
-    })
-
-    console.log(`Successfully uploaded to Blob:`, blob.url)
-
+    
+    // Upload via our API route
+    const imageUrl = await uploadToBlob(imageFile, `products/${productId}`)
+    
     // Send the Blob URL to the backend
     const formData = new FormData()
-    formData.append("image_url", blob.url)
+    formData.append("image_url", imageUrl)
 
     const response = await axios.post(`/products/${productId}/images`, formData, {
       headers: {
@@ -352,4 +338,3 @@ export const setMainProductImage = async (imageId: string): Promise<void> => {
     throw new Error(error.response?.data?.message || "Failed to set main product image")
   }
 }
-
