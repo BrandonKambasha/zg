@@ -69,7 +69,30 @@ export const getOrderById = async (id: string): Promise<Order> => {
 export const createOrder = async (orderData: any): Promise<Order> => {
   try {
     console.log("Creating order with data:", orderData)
-    const response = await axios.post("/orders", orderData)
+    
+    // Transform the items array to include either product_id or hamper_id
+    const transformedItems = orderData.items.map((item: any) => {
+      if (item.type === 'hamper') {
+        return {
+          hamper_id: item.hamper_id || item.id,
+          quantity: item.quantity
+        };
+      } else {
+        return {
+          product_id: item.product_id || item.id,
+          quantity: item.quantity
+        };
+      }
+    });
+
+    // Create a new order data object with the transformed items
+    const transformedOrderData = {
+      ...orderData,
+      items: transformedItems
+    };
+    
+    console.log("Transformed order data:", transformedOrderData)
+    const response = await axios.post("/orders", transformedOrderData)
     console.log("Order created successfully:", response.data)
     return response.data
   } catch (error: any) {
