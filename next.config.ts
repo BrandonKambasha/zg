@@ -8,8 +8,26 @@ const nextConfig: NextConfig = {
         hostname: "zg-backend-production-84b0.up.railway.app",
         pathname: "/storage/**", // Adjust to match your image paths
       },
+      // Add these patterns for Vercel Blob
+      {
+        protocol: "https",
+        hostname: "*.public.blob.vercel-storage.com",
+      },
+      {
+        protocol: "https",
+        hostname: "*.vercel-storage.com",
+      },
+      {
+        protocol: "https",
+        hostname: "86nhxhoblbffrmvh.public.blob.vercel-storage.com",
+      },
     ],
-    unoptimized: process.env.NODE_ENV === 'development',
+    domains: [
+      "vercel-storage.com",
+      "public.blob.vercel-storage.com",
+      "86nhxhoblbffrmvh.public.blob.vercel-storage.com",
+    ],
+    unoptimized: process.env.NODE_ENV === "development",
   },
   eslint: {
     // This will completely skip ESLint during builds
