@@ -1,6 +1,6 @@
 import axios from "axios"
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://192.168.0.123:8000"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://zg-backend-production-84b0.up.railway.app"
 
 export type SearchResult = {
   id: number
