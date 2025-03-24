@@ -4,7 +4,7 @@ import type { Category } from "../../Types"
 export const getCategories = async (): Promise<Category[]> => {
   try {
     // Use a stable cache-busting parameter
-    const response = await axios.get(`/categories?v=1`, {
+    const response = await axios.get(`/categories?v=${Date.now()}`, {
       headers: {
         "Cache-Control": "no-cache",
         Pragma: "no-cache",
@@ -31,7 +31,7 @@ export const getCategories = async (): Promise<Category[]> => {
 
 export const getCategoryById = async (id: string): Promise<Category> => {
   try {
-    const response = await axios.get(`/categories/${id}?v=1`, {
+    const response = await axios.get(`/categories/${id}?v=${Date.now()}`, {
       headers: {
         "Cache-Control": "no-cache",
         Pragma: "no-cache",
@@ -47,7 +47,7 @@ export const getCategoryById = async (id: string): Promise<Category> => {
 
 export const getCategoryWithProducts = async (id: string): Promise<{ category: Category; products: any[] }> => {
   try {
-    const response = await axios.get(`/categories/${id}/products?v=1`, {
+    const response = await axios.get(`/categories/${id}/products?v=${Date.now()}`, {
       headers: {
         "Cache-Control": "no-cache",
         Pragma: "no-cache",

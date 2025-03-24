@@ -55,7 +55,6 @@ export default function RootLayout({
                   },
                 }}
               />
-              {/* Add the PromoBanner component above the Header */}
               <PromoBanner />
               <Header />
               <main className="min-h-[calc(100vh-180px)]">{children}</main>
@@ -177,27 +176,6 @@ export default function RootLayout({
                         </li>
                       </ul>
                     </div>
-                    {/* <div className="mt-2 sm:mt-0">
-                      <h3 className="font-bold text-lg mb-3 sm:mb-6">Contact Us</h3>
-                      <ul className="space-y-2 sm:space-y-3">
-                        <li className="text-gray-300 flex items-start text-sm sm:text-base">
-                          <i className="fas fa-map-marker-alt mt-1 mr-2 sm:mr-3 text-zimbabwe-yellow"></i>
-                          <span>123 Commerce Street, Harare, Zimbabwe</span>
-                        </li>
-                        <li className="text-gray-300 flex items-start text-sm sm:text-base">
-                          <i className="fas fa-phone-alt mt-1 mr-2 sm:mr-3 text-zimbabwe-yellow"></i>
-                          <span>+263 123 456 789</span>
-                        </li>
-                        <li className="text-gray-300 flex items-start text-sm sm:text-base">
-                          <i className="fas fa-envelope mt-1 mr-2 sm:mr-3 text-zimbabwe-yellow"></i>
-                          <span>info@zimbabwegroceries.com</span>
-                        </li>
-                        <li className="text-gray-300 flex items-start text-sm sm:text-base">
-                          <i className="fas fa-clock mt-1 mr-2 sm:mr-3 text-zimbabwe-yellow"></i>
-                          <span>Mon - Fri: 9:00 AM - 5:00 PM</span>
-                        </li>
-                      </ul>
-                    </div> */}
                   </div>
 
                   <div className="fancy-divider mb-6 sm:mb-8"></div>

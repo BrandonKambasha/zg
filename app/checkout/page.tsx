@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useCart } from "../hooks/useCart"
 import { useAuth } from "../hooks/useAuth"
@@ -48,7 +48,7 @@ type ShippingFormValues = {
   delivery_zone: number | null
 }
 
-export default function CheckoutPage() {
+function CheckoutContent() {
   // Use the Zustand cart store
   const { items, totalPrice, clearCart } = useCart()
   const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth()
@@ -607,6 +607,23 @@ export default function CheckoutPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="container mx-auto px-4 py-8 max-w-7xl">
+          <div className="flex flex-col items-center justify-center min-h-[50vh]">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500 mb-4"></div>
+            <p className="text-gray-600">Loading checkout...</p>
+          </div>
+        </div>
+      }
+    >
+      <CheckoutContent />
+    </Suspense>
   )
 }
 

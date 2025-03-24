@@ -24,9 +24,9 @@ export default function PromoBanner() {
   const promoMessages: PromoMessage[] = [
     {
       id: 1,
-      text: "Mother's Day 30 Mar! Send special hampers to Mom ❤️",
+      text: "Mother's Day 30 Mar! Special hampers to Mom ❤️",
       icon: <Gift className="h-4 w-4 sm:h-5 sm:w-5" />,
-      bgColor: "bg-gradient-to-r from-pink-600 to-pink-500",
+      bgColor: "bg-pink-600",
       textColor: "text-white",
       linkText: "Shop Hampers",
       linkUrl: "/hampers",
@@ -35,7 +35,7 @@ export default function PromoBanner() {
       id: 2,
       text: "Free shipping within Harare for orders over $100 🚚",
       icon: <Truck className="h-4 w-4 sm:h-5 sm:w-5" />,
-      bgColor: "bg-gradient-to-r from-teal-600 to-teal-500",
+      bgColor: "bg-teal-600",
       textColor: "text-white",
       linkText: "Shop Now",
       linkUrl: "/products",
@@ -86,7 +86,9 @@ export default function PromoBanner() {
 
   return (
     <div
-      className={`${currentMessage.bgColor} transition-all duration-300 ease-in-out ${isTransitioning ? "opacity-0" : "opacity-100"}`}
+      className={`${currentMessage.bgColor} transition-all duration-300 ease-in-out ${
+        isTransitioning ? "opacity-0" : "opacity-100"
+      }`}
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >

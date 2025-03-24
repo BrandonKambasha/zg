@@ -750,18 +750,28 @@ export default function Home() {
                 <Link href={`/categories/${category.id}`} className="group block">
                   <div className="bg-gray-50 rounded-lg sm:rounded-xl overflow-hidden relative h-36 sm:h-40 md:h-48 hover-glow">
                     <div className="absolute inset-0 bg-gradient-to-t from-teal-900/80 to-transparent z-10"></div>
-                    <Image
-                      src={getFullImageUrl(category.image_url) || "/placeholder.svg"}
-                      alt={category.name}
-                      fill
-                      className="object-cover group-hover:scale-110 transition-transform duration-700"
-                      priority={index === 0}
-                      loading={index === 0 ? "eager" : "lazy"}
-                      onError={(e) => {
-                        console.error(`Failed to load image for category: ${category.name}`)
-                        e.currentTarget.src = "/placeholder.svg"
-                      }}
-                    />
+                    {category.image_url ? (
+                      <Image
+                        src={getFullImageUrl(category.image_url) || "/placeholder.svg"}
+                        alt={category.name}
+                        fill
+                        className="object-cover group-hover:scale-110 transition-transform duration-700"
+                        priority={index === 0}
+                        loading={index === 0 ? "eager" : "lazy"}
+                        onError={(e) => {
+                          // Instead of setting src to placeholder, render a fallback div with the category name
+                          e.currentTarget.style.display = "none"
+                          const parent = e.currentTarget.parentElement
+                          if (parent) {
+                            parent.classList.add("bg-gradient-to-br", "from-teal-600", "to-teal-800")
+                          }
+                        }}
+                      />
+                    ) : (
+                      <div className="absolute inset-0 bg-gradient-to-br from-teal-600 to-teal-800 flex items-center justify-center">
+                        <span className="text-white font-medium text-lg">{category.name}</span>
+                      </div>
+                    )}
                     <div className="absolute bottom-0 left-0 p-3 sm:p-4 z-20 w-full">
                       <h3 className="font-bold text-white text-sm sm:text-base md:text-lg">{category.name}</h3>
                       <div className="flex items-center text-teal-100 text-xs mt-1 opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all">

@@ -10,21 +10,17 @@ import toast from "react-hot-toast"
 import { ShoppingBag, ArrowLeft, Trash2, Plus, Minus } from "lucide-react"
 import { apiBaseUrl } from "../lib/axios"
 
-
 export default function CartPage() {
   const { items, removeItem, updateQuantity, clearCart, totalPrice } = useCart()
   const { user } = useAuth()
   const router = useRouter()
   const [isProcessing, setIsProcessing] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
-  // Force component to update when cart changes
-  const [, forceUpdate] = useState({})
-
-  // Add this effect to ensure the component updates when cart changes
+  // Ensure component is mounted before rendering to prevent hydration issues
   useEffect(() => {
-    // Force a re-render when items change
-    forceUpdate({})
-  }, [items])
+    setMounted(true)
+  }, [])
 
   // Function to get the correct link for each item type
   const getItemLink = (item: any) => {
@@ -48,6 +44,10 @@ export default function CartPage() {
     }
 
     router.push("/checkout")
+  }
+
+  if (!mounted) {
+    return <div className="container mx-auto px-4 py-8">Loading cart...</div>
   }
 
   if (items.length === 0) {
@@ -88,7 +88,7 @@ export default function CartPage() {
             {/* Cart items */}
             <div className="divide-y">
               {items.map((item) => (
-                <div key={`${item.type}-${item.product.id}`} className="p-4">
+                <div key={`${item.type}-${item.product.id}-${item.product.name}`} className="p-4">
                   {/* Mobile layout - stacked */}
                   <div className="sm:hidden space-y-3">
                     <div className="flex items-center justify-between">

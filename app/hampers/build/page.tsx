@@ -2,21 +2,38 @@
 
 import type React from "react"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { getProducts } from "../../lib/api/products"
 import { getCategories } from "../../lib/api/categories"
 import { getHamperById, createCustomHamper, updateCustomHamper } from "../../lib/api/hampers"
-import {ShoppingCart,Loader2,ArrowLeft,Search,Plus,Minus,X,Check,Package,ShoppingBag,Filter,ChevronDown,Save,Camera,ImageIcon,Trash2,FolderHeart} from "lucide-react"
+import {
+  ShoppingCart,
+  Loader2,
+  ArrowLeft,
+  Search,
+  Plus,
+  Minus,
+  X,
+  Check,
+  Package,
+  ShoppingBag,
+  Filter,
+  ChevronDown,
+  Save,
+  Camera,
+  ImageIcon,
+  Trash2,
+  FolderHeart,
+} from "lucide-react"
 import type { Product, Category, Hamper } from "../../Types"
 import useCart from "../../hooks/useCart"
 import { useAuth } from "../../hooks/useAuth"
 import toast from "react-hot-toast"
 import { apiBaseUrl } from "../../lib/axios"
 
-
-export default function BuildHamperPage() {
+function BuildHamperContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const editHamperId = searchParams.get("edit")
@@ -36,7 +53,7 @@ export default function BuildHamperPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [showCategoryFilter, setShowCategoryFilter] = useState(false)
   const [isEditMode, setIsEditMode] = useState(false)
-  
+
   // Image upload state
   const [hamperImage, setHamperImage] = useState<File | null>(null)
   const [hamperImagePreview, setHamperImagePreview] = useState<string | null>(null)
@@ -68,7 +85,6 @@ export default function BuildHamperPage() {
 
   // Calculate total items
   const totalItems = selectedProducts.reduce((sum, item) => sum + item.quantity, 0)
-
 
   useEffect(() => {
     // Check if user is authenticated
@@ -117,7 +133,7 @@ export default function BuildHamperPage() {
       // Set hamper details
       setHamperName(hamper.name)
       setHamperDescription(hamper.description || "")
-      
+
       // Set hamper image if available
       if (hamper.image_url) {
         setExistingImageUrl(hamper.image_url)
@@ -180,7 +196,7 @@ export default function BuildHamperPage() {
     }
 
     setHamperImage(file)
-    
+
     // Create preview URL
     const reader = new FileReader()
     reader.onloadend = () => {
@@ -193,7 +209,7 @@ export default function BuildHamperPage() {
     setHamperImage(null)
     setHamperImagePreview(null)
     setExistingImageUrl(null)
-    
+
     // Reset file input
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
@@ -288,7 +304,7 @@ export default function BuildHamperPage() {
       formData.append("is_active", "1")
       formData.append("is_custom", "1") // Mark as custom hamper
       formData.append("user_id", user?.id.toString() || "")
-      
+
       // Add hamper image if available
       if (hamperImage) {
         formData.append("image", hamperImage)
@@ -397,10 +413,10 @@ export default function BuildHamperPage() {
             <ArrowLeft className="h-4 w-4 mr-1" />
             Back to Hampers
           </Link>
-          
+
           {isAuthenticated && (
-            <Link 
-              href="/hampers/my-hampers" 
+            <Link
+              href="/hampers/my-hampers"
               className="inline-flex items-center px-3 py-1.5 bg-teal-50 text-teal-600 rounded-md hover:bg-teal-100 transition-colors"
             >
               <FolderHeart className="h-4 w-4 mr-1.5" />
@@ -408,7 +424,7 @@ export default function BuildHamperPage() {
             </Link>
           )}
         </div>
-        
+
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
           {isEditMode ? "Edit Your Custom Hamper" : "Build Your Own Hamper"}
         </h1>
@@ -582,20 +598,20 @@ export default function BuildHamperPage() {
             <h2 className="text-lg font-semibold mb-3">
               {isEditMode ? "Edit Your Custom Hamper" : "Your Custom Hamper"}
             </h2>
-            
+
             {/* Hamper Image Upload */}
             <div className="mb-4">
               <label className="block text-sm text-gray-600 mb-1">
                 Hamper Image <span className="text-gray-400 text-xs">(Optional)</span>
               </label>
-              
+
               <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md relative">
                 {hamperImagePreview ? (
                   <div className="relative w-full">
                     <div className="relative h-48 w-full overflow-hidden rounded-md">
-                      <img 
-                        src={hamperImagePreview || "/placeholder.svg"} 
-                        alt="Hamper preview" 
+                      <img
+                        src={hamperImagePreview || "/placeholder.svg"}
+                        alt="Hamper preview"
                         className="w-full h-full object-cover"
                       />
                     </div>
@@ -794,7 +810,7 @@ export default function BuildHamperPage() {
                   <ShoppingCart className="h-4 w-4 mr-2" />
                   Add to Cart
                 </button>
-                
+
                 <Link
                   href="/hampers/my-hampers"
                   className="w-full py-2.5 rounded-md font-medium flex items-center justify-center border border-gray-300 text-gray-600 hover:bg-gray-50"
@@ -831,6 +847,23 @@ export default function BuildHamperPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function BuildHamperPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-[60vh] flex justify-center items-center">
+          <div className="text-center">
+            <Loader2 className="h-10 w-10 animate-spin text-teal-600 mx-auto mb-4" />
+            <p className="text-gray-600">Loading products...</p>
+          </div>
+        </div>
+      }
+    >
+      <BuildHamperContent />
+    </Suspense>
   )
 }
 

@@ -1,4 +1,6 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
   --background: #f8f9fa;
@@ -33,6 +35,7 @@
 
 body {
   font-family: Arial, Helvetica, sans-serif;
+  padding-top: 0;
 }
 
 /* Add this near the top of the file, after the body styles */
@@ -41,6 +44,7 @@ body {
   overflow-x: hidden;
   max-width: 100%;
   position: relative;
+  scroll-padding-top: 80px; /* Adjust based on your header height */
 }
 
 @layer utilities {
@@ -129,6 +133,87 @@ body {
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 }
+
+/* Main content spacing */
+main {
+  padding-top: 1rem;
+}
+
+/* Smooth header transition */
+header {
+  transition: transform 0.3s ease, position 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+  will-change: transform, position, box-shadow, background-color;
+  z-index: 100;
+}
+
+/* Header placeholder for smooth transitions */
+.header-placeholder {
+  transition: height 0.3s ease;
+}
+
+/* Prevent content jumping during transitions */
+body {
+  transition: padding-top 0.3s ease;
+}
+
+/* Smooth header animations */
+@keyframes slide-in-from-top {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in-from-top {
+  animation: slide-in-from-top 0.3s ease forwards;
+}
+
+/* Ensure smooth transitions for all header changes */
+header {
+  will-change: transform, position, box-shadow, background-color;
+}
+
+/* Ensure content doesn't jump when header becomes fixed */
+body.header-is-fixed {
+  transition: padding-top 0.3s ease;
+}
+
+/* When header becomes fixed, add smooth animation */
+header.fixed {
+  animation: slideDown 0.3s ease forwards;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* When scrolling back up, add smooth animation */
+header:not(.fixed) {
+  animation: slideUp 0.3s ease forwards;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* When header becomes fixed, add this class to body */
+/*.header-is-fixed {
+  padding-top: 70px; /* Adjust based on your header height */
+/*}*/
 
 @keyframes float {
   0% {
@@ -633,5 +718,13 @@ header .absolute.top-0.left-0.w-full.h-3.bg-gradient-to-r {
     var(--zimbabwe-green) 80%,
     var(--zimbabwe-green) 100%
   );
+}
+
+/* Add smooth transitions for all elements */
+* {
+  transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform, filter,
+    backdrop-filter;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
 }
 

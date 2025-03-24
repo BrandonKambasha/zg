@@ -45,6 +45,7 @@ interface CartState {
   removedItemIds: number[]
   lastUpdated: number
   userId: string | null
+  isLoading: boolean
 }
 
 interface CartActions {
@@ -57,6 +58,7 @@ interface CartActions {
   loadFromServer: () => Promise<void>
   calculateTotalPrice: () => void
   setUserId: (userId: string | null) => void
+  setIsLoading: (isLoading: boolean) => void
 }
 
 type CartStore = CartState & CartActions
@@ -70,6 +72,11 @@ export const useCartStore = create<CartStore>()(
       removedItemIds: [],
       lastUpdated: Date.now(),
       userId: null, // Initialize with no user
+      isLoading: false,
+
+      setIsLoading: (isLoading) => {
+        set({ isLoading })
+      },
 
       setUserId: (userId) => {
         set({ userId })
@@ -80,20 +87,29 @@ export const useCartStore = create<CartStore>()(
         set({ totalPrice: total })
       },
 
-      // Modified to support type parameter
+      // Modified to support type parameter and prevent duplicates
       addItem: (product: Product | Hamper, quantity = 1, type: "product" | "hamper" = "product") => {
-        const currentItems = get().items
+        // Don't add if already loading
+        if (get().isLoading) return
+
+        const currentItems = [...get().items]
         const removedItemIds = get().removedItemIds.filter((id) => id !== product.id)
-        const existingItem = currentItems.find((item) => item.product.id === product.id && item.type === type)
+
+        // Find existing item with same product ID, type, and name to ensure uniqueness
+        const existingItemIndex = currentItems.findIndex(
+          (item) => item.product.id === product.id && item.type === type && item.product.name === product.name,
+        )
 
         let updatedItems
-        if (existingItem) {
-          updatedItems = currentItems.map((item) =>
-            item.product.id === product.id && item.type === type
-              ? { ...item, quantity: item.quantity + quantity }
-              : item,
-          )
+        if (existingItemIndex >= 0) {
+          // Update existing item quantity
+          updatedItems = [...currentItems]
+          updatedItems[existingItemIndex] = {
+            ...updatedItems[existingItemIndex],
+            quantity: updatedItems[existingItemIndex].quantity + quantity,
+          }
         } else {
+          // Add new item
           updatedItems = [...currentItems, { product, quantity, type }]
         }
 
@@ -110,9 +126,21 @@ export const useCartStore = create<CartStore>()(
         get().addItem(hamper, quantity, "hamper")
       },
 
-      // Modified to support type parameter
+      // Modified to support type parameter with more precise matching
       removeItem: (productId, type: "product" | "hamper" = "product") => {
-        const updatedItems = get().items.filter((item) => !(item.product.id === productId && item.type === type))
+        // Store the name of the product being removed for more precise matching
+        const productToRemove = get().items.find((item) => item.product.id === productId && item.type === type)
+        const productName = productToRemove?.product.name
+
+        const updatedItems = get().items.filter((item) => {
+          // If we have the name, use it for more precise matching
+          if (productName) {
+            return !(item.product.id === productId && item.type === type && item.product.name === productName)
+          }
+          // Fall back to the original logic if name is not available
+          return !(item.product.id === productId && item.type === type)
+        })
+
         const removedItemIds = [...get().removedItemIds, productId]
 
         set({
@@ -123,11 +151,22 @@ export const useCartStore = create<CartStore>()(
         get().calculateTotalPrice()
       },
 
-      // Modified to support type parameter
+      // Modified to support type parameter with more precise matching
       updateQuantity: (productId, quantity, type: "product" | "hamper" = "product") => {
-        const updatedItems = get().items.map((item) =>
-          item.product.id === productId && item.type === type ? { ...item, quantity } : item,
-        )
+        // Find the specific item to update
+        const itemToUpdate = get().items.find((item) => item.product.id === productId && item.type === type)
+        const productName = itemToUpdate?.product.name
+
+        const updatedItems = get().items.map((item) => {
+          // If we have the name, use it for more precise matching
+          if (productName) {
+            return item.product.id === productId && item.type === type && item.product.name === productName
+              ? { ...item, quantity }
+              : item
+          }
+          // Fall back to the original logic if name is not available
+          return item.product.id === productId && item.type === type ? { ...item, quantity } : item
+        })
         set({
           items: updatedItems,
           lastUpdated: Date.now(),
@@ -164,14 +203,11 @@ export const useCartStore = create<CartStore>()(
                 removedItemIds: [],
                 lastUpdated: Date.now(),
                 userId: null,
+                isLoading: false,
               },
               version: 0,
             }),
           )
-
-          // Force a page reload to ensure the cart is cleared in all components
-          // This is a last resort and should be used carefully
-          // window.location.reload()
         } catch (e) {
           console.error("Failed to clear localStorage:", e)
         }
@@ -180,24 +216,27 @@ export const useCartStore = create<CartStore>()(
       // Save cart to server - updated to send all items
       syncWithServer: async () => {
         const userId = get().userId
-        if (!userId) return // Don't sync if no user is logged in
+        if (!userId || get().isLoading) return // Don't sync if no user is logged in or already loading
 
         try {
+          get().setIsLoading(true)
           // Convert our cart items to the format expected by the server
-          // Now sending all items, not just products
           const serverItems = convertToServerFormat(get().items)
           await updateCart(serverItems)
         } catch (error) {
           console.error("Failed to sync cart with server:", error)
+        } finally {
+          get().setIsLoading(false)
         }
       },
 
-      // Load cart from server
+      // Load cart from server with improved merging logic
       loadFromServer: async () => {
         const userId = get().userId
-        if (!userId) return // Don't load if no user is logged in
+        if (!userId || get().isLoading) return // Don't load if no user is logged in or already loading
 
         try {
+          get().setIsLoading(true)
           const serverItems = await getCart()
 
           if (serverItems && serverItems.length > 0) {
@@ -205,16 +244,50 @@ export const useCartStore = create<CartStore>()(
             const serverFilteredItems = serverItems.filter((item) => !get().removedItemIds.includes(item.product.id))
 
             // Convert server items to our local format
-            const filteredItems = convertFromServerFormat(serverFilteredItems)
+            const serverCartItems = convertFromServerFormat(serverFilteredItems)
 
-            // Only update if we have items after filtering
-            if (filteredItems.length > 0) {
-              set({ items: filteredItems })
-              get().calculateTotalPrice()
-            }
+            // Get current local items
+            const localItems = [...get().items]
+
+            // Create a new merged cart without duplicates
+            const mergedCart: CartItem[] = []
+
+            // First, add all local items
+            localItems.forEach((localItem) => {
+              // Check if this item exists in server items
+              const serverItem = serverCartItems.find(
+                (item) => item.product.id === localItem.product.id && item.type === localItem.type,
+              )
+
+              if (serverItem) {
+                // If it exists in both, use the most recent quantity
+                // We'll use local quantity as it's more likely to be up-to-date
+                mergedCart.push(localItem)
+              } else {
+                // If it only exists locally, add it
+                mergedCart.push(localItem)
+              }
+            })
+
+            // Then add server items that don't exist locally
+            serverCartItems.forEach((serverItem) => {
+              const exists = mergedCart.some(
+                (item) => item.product.id === serverItem.product.id && item.type === serverItem.type,
+              )
+
+              if (!exists) {
+                mergedCart.push(serverItem)
+              }
+            })
+
+            // Update the cart with merged items
+            set({ items: mergedCart })
+            get().calculateTotalPrice()
           }
         } catch (error) {
           console.error("Failed to load cart from server:", error)
+        } finally {
+          get().setIsLoading(false)
         }
       },
     }),
@@ -241,6 +314,7 @@ export const useCartStore = create<CartStore>()(
         removedItemIds: state.removedItemIds,
         lastUpdated: state.lastUpdated,
         userId: state.userId,
+        isLoading: state.isLoading,
       }),
     },
   ),
@@ -251,6 +325,7 @@ export function useCart() {
   const cartStore = useCartStore()
   const { user, isAuthenticated } = useAuth()
   const [mounted, setMounted] = useState(false)
+  const [syncTimeout, setSyncTimeout] = useState<NodeJS.Timeout | null>(null)
 
   // Handle hydration mismatch
   useEffect(() => {
@@ -275,25 +350,33 @@ export function useCart() {
   useEffect(() => {
     if (!mounted) return
 
-    let timeoutId: NodeJS.Timeout
+    // Clear any existing timeout to prevent multiple syncs
+    if (syncTimeout) {
+      clearTimeout(syncTimeout)
+    }
 
     if (isAuthenticated && user && cartStore.items.length > 0) {
       // Debounce the sync to avoid too many requests
-      timeoutId = setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         cartStore.syncWithServer()
-      }, 500)
+      }, 1000) // Increased debounce time to reduce chances of race conditions
+
+      setSyncTimeout(timeoutId)
     }
 
     return () => {
-      if (timeoutId) clearTimeout(timeoutId)
+      if (syncTimeout) clearTimeout(syncTimeout)
     }
   }, [isAuthenticated, user, cartStore.items, mounted])
 
-  // Load from server when user logs in
+  // Load from server when user logs in - only once
   useEffect(() => {
     if (!mounted) return
 
-    if (isAuthenticated && user) {
+    let hasLoaded = false
+
+    if (isAuthenticated && user && !hasLoaded) {
+      hasLoaded = true
       // When user logs in, load their cart from server
       cartStore.loadFromServer()
     }

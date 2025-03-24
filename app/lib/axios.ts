@@ -1,9 +1,9 @@
 import axios from "axios"
 
-export const apiBaseUrl="http://192.168.0.123:8000";
-
+// export const apiBaseUrl="http://192.168.0.123:8000";
+export const apiBaseUrl = 'https://zg-backend-production-84b0.up.railway.app';
 const instance = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://192.168.0.123:8000/api",
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "https://zg-backend-production-84b0.up.railway.app/api",
   timeout: 10000, // Increase timeout to 10 seconds
   headers: {
     "Content-Type": "application/json",

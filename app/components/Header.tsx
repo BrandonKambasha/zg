@@ -1,8 +1,7 @@
 "use client"
 
-import React from "react"
+import React, { useState, useEffect, useRef } from "react"
 import Link from "next/link"
-import { useState, useEffect, useRef } from "react"
 import {
   User,
   Search,
@@ -69,12 +68,16 @@ export default function Header() {
   const [showSearchResults, setShowSearchResults] = useState(false)
   const [activeGroup, setActiveGroup] = useState<string | null>(null)
   const searchRef = useRef<HTMLDivElement>(null)
+  const headerRef = useRef<HTMLElement>(null)
   const router = useRouter()
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
 
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 10) {
+      // Check if we've scrolled past the promo banner height
+      const promoBannerHeight = document.querySelector(".promo-banner")?.clientHeight || 0
+
+      if (window.scrollY > promoBannerHeight) {
         setIsScrolled(true)
       } else {
         setIsScrolled(false)
@@ -90,15 +93,25 @@ export default function Header() {
       setIsLoading(true)
       try {
         const data = await getCategories()
-        setCategories(data || [])
+        if (isMounted) {
+          setCategories(data || [])
+        }
       } catch (error) {
         console.error("Failed to fetch categories:", error)
       } finally {
-        setIsLoading(false)
+        if (isMounted) {
+          setIsLoading(false)
+        }
       }
     }
 
+    let isMounted = true
     fetchCategories()
+
+    // Cleanup function to prevent state updates after unmount
+    return () => {
+      isMounted = false
+    }
   }, [])
 
   useEffect(() => {
@@ -171,9 +184,10 @@ export default function Header() {
 
   return (
     <header
-      className={`sticky top-0 z-50 transition-all duration-300 ${
-        isScrolled ? "bg-white/95 backdrop-blur-md shadow-md py-2" : "bg-white py-2"
-      }`}
+      ref={headerRef}
+      className={`w-full transition-all duration-300 ${
+        isScrolled ? "fixed top-0 left-0 right-0 z-[100] bg-white/95 backdrop-blur-md shadow-md" : "bg-white"
+      } py-2`}
     >
       <div className="absolute top-0 left-0 w-full h-3 bg-gradient-to-r from-zimbabwe-green via-zimbabwe-yellow to-zimbabwe-red"></div>
       <div className="container mx-auto px-4">

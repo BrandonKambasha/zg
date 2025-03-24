@@ -33,7 +33,7 @@ interface AddProductFormProps {
   onSuccess?: () => void
 }
 
-export function AddProductForm({ onSuccess}: AddProductFormProps) {
+export function AddProductForm({ onSuccess }: AddProductFormProps) {
   const [categories, setCategories] = useState<Category[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -148,9 +148,7 @@ export function AddProductForm({ onSuccess}: AddProductFormProps) {
             .map(([key, messages]) => (Array.isArray(messages) ? messages.join(", ") : messages))
             .join(". ")
 
-          toast.error(
-            `Image upload failed: ${imageErrorMessages || "Invalid image format or size (max 2MB, formats: jpeg, png, jpg, gif, webp, avif)"}`,
-          )
+          toast.error(`Image upload failed: ${imageErrorMessages || "Invalid image format or size"}`)
         } else {
           // General validation error
           toast.error(errorData?.message || "Failed to add product due to validation errors")
