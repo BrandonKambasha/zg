@@ -39,8 +39,13 @@ export async function POST(request: Request) {
 
     console.log(`API route: Uploading file "${file.name}" (${file.size} bytes) to folder "${folder}"`)
 
+    // Generate a unique filename with sanitized original name
+    const timestamp = Date.now()
+    const originalName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_")
+    const filename = `${folder}/${timestamp}-${originalName}`
+
     // Upload to Vercel Blob
-    const blob = await put(`${folder}/${Date.now()}-${file.name}`, file, {
+    const blob = await put(filename, file, {
       access: "public",
       addRandomSuffix: true,
     })
@@ -79,5 +84,11 @@ export async function POST(request: Request) {
       },
     )
   }
+}
+
+export const config = {
+  api: {
+    bodyParser: false,
+  },
 }
 

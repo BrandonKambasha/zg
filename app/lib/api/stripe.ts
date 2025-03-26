@@ -41,14 +41,39 @@ export const verifyPaymentStatus = async (sessionId: string) => {
 export const handleCheckoutCancellation = async (orderId: string | number) => {
   try {
     console.log("Handling checkout cancellation for order ID:", orderId)
-    const response = await axios.post("/stripe/handle-cancellation", {
-      order_id: orderId,
-    })
-    console.log("Cancellation response:", response.data)
-    return response.data
+
+    // Add a retry mechanism with exponential backoff
+    let attempts = 0
+    const maxAttempts = 3
+    let delay = 1000 // Start with 1 second delay
+
+    while (attempts < maxAttempts) {
+      try {
+        const response = await axios.post("/stripe/handle-cancellation", {
+          order_id: orderId,
+        })
+        console.log("Cancellation response:", response.data)
+        return response.data
+      } catch (error: any) {
+        attempts++
+        if (attempts >= maxAttempts) {
+          throw error // Rethrow after max attempts
+        }
+
+        console.log(`Cancellation attempt ${attempts} failed, retrying in ${delay}ms...`)
+        await new Promise((resolve) => setTimeout(resolve, delay))
+        delay *= 2 // Exponential backoff
+      }
+    }
   } catch (error: any) {
     console.error("Cancellation error:", error)
-    throw new Error(error.response?.data?.message || "Failed to process cancellation")
+    // Don't throw the error, just log it and return a default response
+    // This prevents the error from bubbling up and causing a logout
+    return {
+      success: false,
+      message: "Failed to cancel order, but you can continue shopping",
+      error: error.response?.data?.message || "Failed to process cancellation",
+    }
   }
 }
 
@@ -74,3 +99,4 @@ export const manuallyVerifyPayment = async (sessionId: string) => {
     throw new Error(error.response?.data?.message || "Failed to manually verify payment")
   }
 }
+

@@ -9,6 +9,7 @@ import AuthProvider from "./providers/AuthProvider"
 import CartProvider from "./providers/CartProvider"
 import WishlistProvider from "./providers/WishlistProvider"
 import { ChevronRight } from "lucide-react"
+import Script from "next/script"
 
 const inter = Inter({ subsets: ["latin"], display: "swap" })
 
@@ -26,6 +27,11 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+        {/* Add reCAPTCHA script here */}
+        <Script
+          src={`https://www.google.com/recaptcha/api.js?render=${process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}`}
+          strategy="afterInteractive"
+        />
       </head>
       <body className={inter.className}>
         <AuthProvider>
@@ -168,7 +174,7 @@ export default function RootLayout({
                         <li>
                           <a
                             href="/faq"
-                            className="text-gray-300 hover:text-zimbabwe-yellow transition-colors flex items-center text-sm sm:text-base"
+                            className="text-gray-300 hover:text-zimbabwe-yellow transition-colors flex items-center text-sm:text-base"
                           >
                             <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                             FAQ
@@ -199,7 +205,7 @@ export default function RootLayout({
                       </a>
                       <a
                         href="#"
-                        className="text-gray-400 hover:text-zimbabwe-yellow transition-colors text-sm sm:text-base"
+                        className="text-gray-400 hover:text-zimbabwe-yellow transition-colors text-sm:text-base"
                       >
                         Shipping Policy
                       </a>

@@ -198,7 +198,7 @@ export default function AdminOrderModal({ orderId, isOpen, onClose }: AdminOrder
                         {order.id > 0 && (
                           <div className="mt-3">
                             <p className="text-xs text-gray-500">Shipping Cost</p>
-                            <p className="font-medium">$5</p>
+                            <span className="font-medium">${order.shipping_cost ?? 5}</span>
                           </div>
                         )}
                       </div>
@@ -242,10 +242,10 @@ export default function AdminOrderModal({ orderId, isOpen, onClose }: AdminOrder
                             </p>
                           </div>
 
-                          {order.payment.id && (
+                          {order.payment.transaction_id && (
                             <div>
                               <p className="text-xs text-gray-500">Transaction ID</p>
-                              <p className="text-sm font-mono">{order.payment.id}</p>
+                              <p className="text-sm font-mono">{order.payment.transaction_id}</p>
                             </div>
                           )}
                         </>
@@ -269,9 +269,11 @@ export default function AdminOrderModal({ orderId, isOpen, onClose }: AdminOrder
 
                     <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
                       <div className="divide-y divide-gray-200">
-                        {order.products && order.products.length > 0 ? (
+                        {/* Products */}
+                        {order.products &&
+                          order.products.length > 0 &&
                           order.products.map((productInfo, index) => (
-                            <div key={index} className="flex items-start p-4">
+                            <div key={`product-${index}`} className="flex items-start p-4">
                               <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border border-gray-200 mr-4">
                                 {productInfo.product.image_url ? (
                                   <Image
@@ -297,16 +299,18 @@ export default function AdminOrderModal({ orderId, isOpen, onClose }: AdminOrder
                                 <p className="text-sm text-gray-500">${formatPrice(productInfo.price)} each</p>
                               </div>
                             </div>
-                          ))
-                        ) : order.orderItems && order.orderItems.length > 0 ? (
-                          // Fallback to orderItems if products array is not available
-                          order.orderItems.map((item) => (
-                            <div key={item.id} className="flex items-start p-4">
+                          ))}
+
+                        {/* Hampers */}
+                        {order.hampers &&
+                          order.hampers.length > 0 &&
+                          order.hampers.map((hamperInfo, index) => (
+                            <div key={`hamper-${index}`} className="flex items-start p-4">
                               <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border border-gray-200 mr-4">
-                                {item.product?.image_url ? (
+                                {hamperInfo.hamper.image_url ? (
                                   <Image
-                                    src={getFullImageUrl(item.product.image_url) || "/placeholder.svg"}
-                                    alt={item.product.name}
+                                    src={getFullImageUrl(hamperInfo.hamper.image_url) || "/placeholder.svg"}
+                                    alt={hamperInfo.hamper.name}
                                     width={64}
                                     height={64}
                                     className="h-full w-full object-cover object-center"
@@ -318,19 +322,77 @@ export default function AdminOrderModal({ orderId, isOpen, onClose }: AdminOrder
                                 )}
                               </div>
                               <div className="flex-1">
-                                <h4 className="font-medium text-gray-900">{item.product.name}</h4>
+                                <h4 className="font-medium text-gray-900">
+                                  {hamperInfo.hamper.name}
+                                  <span className="ml-1 text-xs text-teal-600">(Hamper)</span>
+                                </h4>
+                                <p className="text-sm text-gray-500 mt-1">Qty: {hamperInfo.quantity}</p>
+                                <p className="text-xs text-gray-500 mt-1">Hamper ID: {hamperInfo.hamper.id}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-medium">${formatPrice(hamperInfo.price * hamperInfo.quantity)}</p>
+                                <p className="text-sm text-gray-500">${formatPrice(hamperInfo.price)} each</p>
+                              </div>
+                            </div>
+                          ))}
+
+                        {/* Fallback to orderItems if products and hampers arrays are not available */}
+                        {(!order.products || order.products.length === 0) &&
+                          (!order.hampers || order.hampers.length === 0) &&
+                          order.orderItems &&
+                          order.orderItems.length > 0 &&
+                          order.orderItems.map((item) => (
+                            <div key={item.id} className="flex items-start p-4">
+                              <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border border-gray-200 mr-4">
+                                {item.product?.image_url ? (
+                                  <Image
+                                    src={getFullImageUrl(item.product.image_url) || "/placeholder.svg"}
+                                    alt={item.product?.name || "Product"}
+                                    width={64}
+                                    height={64}
+                                    className="h-full w-full object-cover object-center"
+                                  />
+                                ) : item.hamper?.image_url ? (
+                                  <Image
+                                    src={getFullImageUrl(item.hamper.image_url) || "/placeholder.svg"}
+                                    alt={item.hamper.name}
+                                    width={64}
+                                    height={64}
+                                    className="h-full w-full object-cover object-center"
+                                  />
+                                ) : (
+                                  <div className="h-full w-full bg-gray-200 flex items-center justify-center">
+                                    <Package className="h-6 w-6 text-gray-400" />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex-1">
+                                <h4 className="font-medium text-gray-900">
+                                  {item.product?.name || item.hamper?.name || "Unknown Item"}
+                                  {item.hamper && <span className="ml-1 text-xs text-teal-600">(Hamper)</span>}
+                                </h4>
                                 <p className="text-sm text-gray-500 mt-1">Qty: {item.quantity}</p>
-                                <p className="text-xs text-gray-500 mt-1">Product ID: {item.product.id}</p>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  {item.product
+                                    ? `Product ID: ${item.product.id}`
+                                    : item.hamper
+                                      ? `Hamper ID: ${item.hamper.id}`
+                                      : ""}
+                                </p>
                               </div>
                               <div className="text-right">
                                 <p className="font-medium">${formatPrice(item.price * item.quantity)}</p>
                                 <p className="text-sm text-gray-500">${formatPrice(item.price)} each</p>
                               </div>
                             </div>
-                          ))
-                        ) : (
-                          <div className="p-4 text-center text-gray-500">No items found in this order.</div>
-                        )}
+                          ))}
+
+                        {/* No items message */}
+                        {(!order.products || order.products.length === 0) &&
+                          (!order.hampers || order.hampers.length === 0) &&
+                          (!order.orderItems || order.orderItems.length === 0) && (
+                            <div className="p-4 text-center text-gray-500">No items found in this order.</div>
+                          )}
                       </div>
                     </div>
 
@@ -338,13 +400,15 @@ export default function AdminOrderModal({ orderId, isOpen, onClose }: AdminOrder
                     <div className="mt-4 border-t border-gray-200 pt-4">
                       <div className="flex justify-between items-center">
                         <span className="text-gray-600">Subtotal</span>
-                        <span className="font-medium">${formatPrice(order.total_amount)}</span>
+                        <span className="font-medium">
+                          ${formatPrice(order.total_amount - (order.shipping_cost ?? 0))}
+                        </span>
                       </div>
 
-                      {order.total_amount > 0 && (
+                      {order.shipping_cost > 0 && (
                         <div className="flex justify-between items-center mt-2">
                           <span className="text-gray-600">Shipping</span>
-                          <span className="font-medium">${formatPrice(order.total_amount)}</span>
+                          <span className="font-medium">${formatPrice(order.shipping_cost)}</span>
                         </div>
                       )}
 

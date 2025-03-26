@@ -69,29 +69,58 @@ export const getOrderById = async (id: string): Promise<Order> => {
 export const createOrder = async (orderData: any): Promise<Order> => {
   try {
     console.log("Creating order with data:", orderData)
-    
-    // Transform the items array to include either product_id or hamper_id
-    const transformedItems = orderData.items.map((item: any) => {
-      if (item.type === 'hamper') {
-        return {
-          hamper_id: item.hamper_id || item.id,
-          quantity: item.quantity
-        };
-      } else {
-        return {
-          product_id: item.product_id || item.id,
-          quantity: item.quantity
-        };
-      }
-    });
+
+    // Check if items are already transformed (have hamper_id or product_id)
+    const itemsAlreadyTransformed = orderData.items.some(
+      (item: any) => item.hamper_id !== undefined || item.product_id !== undefined,
+    )
+
+    let transformedItems
+
+    if (itemsAlreadyTransformed) {
+      // Items are already transformed, use them as is
+      console.log("Items are already transformed, using as is")
+      transformedItems = orderData.items
+    } else {
+      // Transform the items array to include either product_id or hamper_id
+      console.log("Transforming items")
+      transformedItems = orderData.items.map((item: any) => {
+        // Log the item for debugging
+        console.log("Processing item for order:", item)
+
+        // Ensure the item and product exist
+        if (!item || !item.product) {
+          console.error("Invalid item found:", item)
+          throw new Error("Invalid item in cart. Please try removing and re-adding items to your cart.")
+        }
+
+        // Check if this is a hamper by looking at the type property
+        if (item.type === "hamper") {
+          console.log("This is a hamper item with ID:", item.product.id)
+          return {
+            hamper_id: item.product.id, // Use product.id for hamper_id
+            quantity: item.quantity,
+            type: "hamper", // Include type for clarity
+          }
+        } else {
+          console.log("This is a product item with ID:", item.product.id)
+          return {
+            product_id: item.product.id, // Use product.id for product_id
+            quantity: item.quantity,
+            type: "product", // Include type for clarity
+          }
+        }
+      })
+    }
 
     // Create a new order data object with the transformed items
     const transformedOrderData = {
       ...orderData,
-      items: transformedItems
-    };
-    
-    console.log("Transformed order data:", transformedOrderData)
+      items: transformedItems,
+    }
+
+    console.log("Final order data:", transformedOrderData)
+
     const response = await axios.post("/orders", transformedOrderData)
     console.log("Order created successfully:", response.data)
     return response.data
@@ -142,3 +171,4 @@ export const updateOrderStatus = async (orderId: string, status: string): Promis
     throw new Error(error.response?.data?.message || "Failed to update order status")
   }
 }
+

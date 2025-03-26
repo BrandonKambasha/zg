@@ -6,10 +6,8 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import toast from "react-hot-toast"
-import { Loader2, Plus, X } from 'lucide-react'
+import { Loader2, Plus, X } from "lucide-react"
 import { createCategory } from "../lib/api/categories"
-import { apiBaseUrl } from "../lib/axios"
-
 
 const categorySchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -26,7 +24,7 @@ interface AddCategoryFormProps {
   onSuccess?: () => void
 }
 
-export function AddCategoryForm({ onSuccess}: AddCategoryFormProps) {
+export function AddCategoryForm({ onSuccess }: AddCategoryFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [image, setImage] = useState<File | null>(null)
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null)
@@ -97,6 +95,10 @@ export function AddCategoryForm({ onSuccess}: AddCategoryFormProps) {
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+        <h2 className="text-lg font-medium">Add New Category</h2>
+        <p className="text-sm text-gray-500">Create a new category for products or hampers.</p>
+      </div>
       <div className="p-6">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -204,3 +206,4 @@ export function AddCategoryForm({ onSuccess}: AddCategoryFormProps) {
     </div>
   )
 }
+

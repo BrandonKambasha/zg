@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { AlertCircle, X } from 'lucide-react'
+import { AlertCircle, X } from "lucide-react"
 import { cancelOrder } from "../lib/api/orders"
 import { handleCheckoutCancellation } from "../lib/api/stripe"
 import toast from "react-hot-toast"
@@ -20,20 +20,30 @@ export default function OrderCancellation({ orderId, isStripeCheckout = false, o
     setIsLoading(true)
     try {
       if (isStripeCheckout) {
-        await handleCheckoutCancellation(orderId)
+        const result = await handleCheckoutCancellation(orderId)
+        if (result.success === false) {
+          // Handle the case where cancellation failed but we want to continue
+          toast.error(result.message || "Order cancellation had an issue, but you can continue shopping")
+        } else {
+          toast.success("Order cancelled successfully")
+        }
       } else {
         await cancelOrder(orderId)
+        toast.success("Order cancelled successfully")
       }
-      
-      toast.success("Order cancelled successfully")
+
       setShowConfirmation(false)
-      
+
       if (onCancelled) {
         onCancelled()
       }
     } catch (error: any) {
       console.error("Failed to cancel order:", error)
-      toast.error(error.message || "Failed to cancel order")
+      // Don't show error toast for Stripe checkout cancellations
+      // This prevents a bad UX when the user is redirected back
+      if (!isStripeCheckout) {
+        toast.error(error.message || "Failed to cancel order")
+      }
     } finally {
       setIsLoading(false)
     }
@@ -41,10 +51,7 @@ export default function OrderCancellation({ orderId, isStripeCheckout = false, o
 
   return (
     <>
-      <button
-        onClick={() => setShowConfirmation(true)}
-        className="text-red-600 hover:text-red-800 text-sm font-medium"
-      >
+      <button onClick={() => setShowConfirmation(true)} className="text-red-600 hover:text-red-800 text-sm font-medium">
         Cancel Order
       </button>
 
@@ -57,7 +64,7 @@ export default function OrderCancellation({ orderId, isStripeCheckout = false, o
             >
               <X className="h-5 w-5" />
             </button>
-            
+
             <div className="flex items-start mb-4">
               <div className="flex-shrink-0">
                 <AlertCircle className="h-6 w-6 text-red-600" />
@@ -69,7 +76,7 @@ export default function OrderCancellation({ orderId, isStripeCheckout = false, o
                 </p>
               </div>
             </div>
-            
+
             <div className="mt-6 flex justify-end space-x-3">
               <button
                 type="button"
@@ -86,9 +93,25 @@ export default function OrderCancellation({ orderId, isStripeCheckout = false, o
               >
                 {isLoading ? (
                   <span className="flex items-center">
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <svg
+                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
                     </svg>
                     Processing...
                   </span>
@@ -103,3 +126,4 @@ export default function OrderCancellation({ orderId, isStripeCheckout = false, o
     </>
   )
 }
+

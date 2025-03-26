@@ -58,7 +58,7 @@ export default function OrderModal({ orderId, isOpen, onClose }: OrderModalProps
 
   // Format price
   const formatPrice = (price: number) => {
-    return price
+    return Number(price).toFixed(2)
   }
 
   // Get status badge color
@@ -177,82 +177,157 @@ export default function OrderModal({ orderId, isOpen, onClose }: OrderModalProps
                 <h3 className="font-medium mb-3">Items Ordered</h3>
                 <div className="border border-gray-200 rounded-lg overflow-hidden">
                   <div className="divide-y divide-gray-200">
-                    {order.products && order.products.length > 0 ? (
-                      order.products.map((productInfo, index) => (
-                        <div key={index} className="flex items-start p-4">
-                          <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border border-gray-200 mr-4">
-                            {productInfo.product.image_url ? (
-                              <Image
-                                src={getFullImageUrl(productInfo.product.image_url) || "/placeholder.svg"}
-                                alt={productInfo.product.name}
-                                width={64}
-                                height={64}
-                                className="h-full w-full object-cover object-center"
-                              />
-                            ) : (
-                              <div className="h-full w-full bg-gray-200 flex items-center justify-center">
-                                <Package className="h-6 w-6 text-gray-400" />
-                              </div>
-                            )}
+                    {/* Products */}
+                    {order.products && order.products.length > 0
+                      ? order.products.map((productInfo, index) => (
+                          <div key={`product-${index}`} className="flex items-start p-4">
+                            <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border border-gray-200 mr-4">
+                              {productInfo.product.image_url ? (
+                                <Image
+                                  src={getFullImageUrl(productInfo.product.image_url) || "/placeholder.svg"}
+                                  alt={productInfo.product.name}
+                                  width={64}
+                                  height={64}
+                                  className="h-full w-full object-cover object-center"
+                                />
+                              ) : (
+                                <div className="h-full w-full bg-gray-200 flex items-center justify-center">
+                                  <Package className="h-6 w-6 text-gray-400" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="font-medium text-gray-900">{productInfo.product.name}</h4>
+                              <p className="text-sm text-gray-500 mt-1">Qty: {productInfo.quantity}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-medium">${formatPrice(productInfo.price * productInfo.quantity)}</p>
+                              <p className="text-sm text-gray-500">${formatPrice(productInfo.price)} each</p>
+                            </div>
                           </div>
-                          <div className="flex-1">
-                            <h4 className="font-medium text-gray-900">{productInfo.product.name}</h4>
-                            <p className="text-sm text-gray-500 mt-1">Qty: {productInfo.quantity}</p>
+                        ))
+                      : null}
+
+                    {/* Hampers */}
+                    {order.hampers && order.hampers.length > 0
+                      ? order.hampers.map((hamperInfo, index) => (
+                          <div key={`hamper-${index}`} className="flex items-start p-4">
+                            <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border border-gray-200 mr-4">
+                              {hamperInfo.hamper.image_url ? (
+                                <Image
+                                  src={getFullImageUrl(hamperInfo.hamper.image_url) || "/placeholder.svg"}
+                                  alt={hamperInfo.hamper.name}
+                                  width={64}
+                                  height={64}
+                                  className="h-full w-full object-cover object-center"
+                                />
+                              ) : (
+                                <div className="h-full w-full bg-gray-200 flex items-center justify-center">
+                                  <Package className="h-6 w-6 text-gray-400" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="font-medium text-gray-900">
+                                {hamperInfo.hamper.name}
+                                <span className="ml-1 text-xs text-teal-600">(Hamper)</span>
+                              </h4>
+                              <p className="text-sm text-gray-500 mt-1">Qty: {hamperInfo.quantity}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-medium">${formatPrice(hamperInfo.price * hamperInfo.quantity)}</p>
+                              <p className="text-sm text-gray-500">${formatPrice(hamperInfo.price)} each</p>
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <p className="font-medium">${formatPrice(productInfo.price * productInfo.quantity)}</p>
-                            <p className="text-sm text-gray-500">${formatPrice(productInfo.price)} each</p>
+                        ))
+                      : null}
+
+                    {/* Fallback to orderItems if products and hampers arrays are not available */}
+                    {(!order.products || order.products.length === 0) &&
+                    (!order.hampers || order.hampers.length === 0) &&
+                    order.orderItems &&
+                    order.orderItems.length > 0
+                      ? order.orderItems.map((item) => (
+                          <div key={item.id} className="flex items-start p-4">
+                            <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border border-gray-200 mr-4">
+                              {item.product?.image_url ? (
+                                <Image
+                                  src={getFullImageUrl(item.product.image_url) || "/placeholder.svg"}
+                                  alt={item.product?.name || "Product"}
+                                  width={64}
+                                  height={64}
+                                  className="h-full w-full object-cover object-center"
+                                />
+                              ) : item.hamper?.image_url ? (
+                                <Image
+                                  src={getFullImageUrl(item.hamper.image_url) || "/placeholder.svg"}
+                                  alt={item.hamper?.name || "Hamper"}
+                                  width={64}
+                                  height={64}
+                                  className="h-full w-full object-cover object-center"
+                                />
+                              ) : (
+                                <div className="h-full w-full bg-gray-200 flex items-center justify-center">
+                                  <Package className="h-6 w-6 text-gray-400" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="font-medium text-gray-900">
+                                {item.product?.name || item.hamper?.name || "Unknown Item"}
+                                {item.hamper && <span className="ml-1 text-xs text-teal-600">(Hamper)</span>}
+                              </h4>
+                              <p className="text-sm text-gray-500 mt-1">Qty: {item.quantity}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-medium">${formatPrice(item.price * item.quantity)}</p>
+                              <p className="text-sm text-gray-500">${formatPrice(item.price)} each</p>
+                            </div>
                           </div>
-                        </div>
-                      ))
-                    ) : order.orderItems && order.orderItems.length > 0 ? (
-                      // Fallback to orderItems if products array is not available
-                      order.orderItems.map((item) => (
-                        <div key={item.id} className="flex items-start p-4">
-                          <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border border-gray-200 mr-4">
-                            {item.product?.image_url ? (
-                              <Image
-                                src={getFullImageUrl(item.product.image_url) || "/placeholder.svg"}
-                                alt={item.product.name}
-                                width={64}
-                                height={64}
-                                className="h-full w-full object-cover object-center"
-                              />
-                            ) : (
-                              <div className="h-full w-full bg-gray-200 flex items-center justify-center">
-                                <Package className="h-6 w-6 text-gray-400" />
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="font-medium text-gray-900">{item.product.name}</h4>
-                            <p className="text-sm text-gray-500 mt-1">Qty: {item.quantity}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-medium">${formatPrice(item.price * item.quantity)}</p>
-                            <p className="text-sm text-gray-500">${formatPrice(item.price)} each</p>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="p-4 text-center text-gray-500">No items found in this order.</div>
-                    )}
+                        ))
+                      : (!order.products || order.products.length === 0) &&
+                        (!order.hampers || order.hampers.length === 0) &&
+                        (!order.orderItems || order.orderItems.length === 0) && (
+                          <div className="p-4 text-center text-gray-500">No items found in this order.</div>
+                        )}
                   </div>
                 </div>
               </div>
 
               {/* Order total */}
               <div className="border-t border-gray-200 pt-4">
-                <div className="flex justify-between text-base font-medium text-gray-900">
-                  <p>Total</p>
-                  <p>${formatPrice(order.total_amount)}</p>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Subtotal</span>
+                    <span>${formatPrice(order.total_amount - (order.shipping_cost ?? 0))}</span>
+                  </div>
+
+                  {order.shipping_cost && order.shipping_cost > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Shipping</span>
+                      <span>${formatPrice(order.shipping_cost)}</span>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between text-base font-medium text-gray-900 pt-2 border-t border-gray-200 mt-2">
+                    <p>Total</p>
+                    <p>${formatPrice(order.total_amount)}</p>
+                  </div>
                 </div>
-                {/* {order.shipping_address && (
+                {order.shipping_address && (
                   <div className="mt-4">
                     <h3 className="font-medium mb-1">Shipping Address</h3>
                     <p className="text-gray-700 whitespace-pre-line">{order.shipping_address}</p>
+                    {order.zim_contact && (
+                      <div className="mt-2">
+                        <p className="text-sm text-gray-500">Zimbabwe Contact:</p>
+                        <p>
+                          {order.zim_name || "Recipient"}: {order.zim_contact}
+                        </p>
+                      </div>
+                    )}
                   </div>
-                )} */}
+                )}
               </div>
             </div>
           ) : (

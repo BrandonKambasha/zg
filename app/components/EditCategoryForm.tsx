@@ -7,19 +7,18 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import toast from "react-hot-toast"
-import { Loader2, Plus, X } from 'lucide-react'
+import { Loader2, Plus, X } from "lucide-react"
 import { updateCategory } from "../lib/api/categories"
 import type { Category } from "../Types"
 import Image from "next/image"
 import { apiBaseUrl } from "../lib/axios"
 
-
 const categorySchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   description: z.string().min(10, "Description must be at least 10 characters"),
   is_active: z.boolean().optional(),
-  type: z.string().refine(val => ['products', 'hampers'].includes(val), {
-    message: "Type must be either 'products' or 'hampers'"
+  type: z.string().refine((val) => ["products", "hampers"].includes(val), {
+    message: "Type must be either 'products' or 'hampers'",
   }),
 })
 
@@ -269,3 +268,4 @@ export function EditCategoryForm({ category, onSuccess }: EditCategoryFormProps)
     </div>
   )
 }
+

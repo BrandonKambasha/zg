@@ -6,13 +6,11 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import toast from "react-hot-toast"
-import { Loader2, Plus, X, Minus } from 'lucide-react'
+import { Loader2, Plus, X, Minus } from "lucide-react"
 import { getProducts } from "../lib/api/products"
 import { getCategories } from "../lib/api/categories"
 import { createHamper } from "../lib/api/hampers"
 import type { Product, Category } from "../Types"
-import { apiBaseUrl } from "../lib/axios"
-
 
 const hamperSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -33,7 +31,7 @@ interface AddHamperFormProps {
   onSuccess?: () => void
 }
 
-export function AddHamperForm({ onSuccess}: AddHamperFormProps) {
+export function AddHamperForm({ onSuccess }: AddHamperFormProps) {
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -65,27 +63,24 @@ export function AddHamperForm({ onSuccess}: AddHamperFormProps) {
     async function fetchData() {
       setIsLoading(true)
       try {
-        const [productsData, categoriesData] = await Promise.all([
-          getProducts(),
-          getCategories()
-        ]);
-        setProducts(productsData || []);
-        
+        const [productsData, categoriesData] = await Promise.all([getProducts(), getCategories()])
+        setProducts(productsData || [])
+
         // Filter categories to only include those with type 'hampers'
-        const hamperCategories = categoriesData.filter(category => category.type === 'hampers') || [];
-        setCategories(hamperCategories);
-        
-        setFilteredProducts(productsData || []);
+        const hamperCategories = categoriesData.filter((category) => category.type === "hampers") || []
+        setCategories(hamperCategories)
+
+        setFilteredProducts(productsData || [])
       } catch (error) {
-        console.error("Failed to fetch data:", error);
-        toast.error("Failed to load products and categories");
+        console.error("Failed to fetch data:", error)
+        toast.error("Failed to load products and categories")
       } finally {
-        setIsLoading(false);
+        setIsLoading(false)
       }
     }
 
-    fetchData();
-  }, []);
+    fetchData()
+  }, [])
 
   useEffect(() => {
     if (searchTerm) {
@@ -104,6 +99,7 @@ export function AddHamperForm({ onSuccess}: AddHamperFormProps) {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0]
+      console.log("Selected image file:", file.name, file.type, file.size)
       setImage(file)
       setImagePreviewUrl(URL.createObjectURL(file))
     }
@@ -152,7 +148,9 @@ export function AddHamperForm({ onSuccess}: AddHamperFormProps) {
       formData.append("is_active", data.is_active ? "1" : "0")
       formData.append("category_id", data.category_id)
 
+      // Add image if selected
       if (image) {
+        console.log("Adding image to form data:", image.name, image.type, image.size)
         formData.append("image", image)
       }
 
@@ -162,7 +160,14 @@ export function AddHamperForm({ onSuccess}: AddHamperFormProps) {
         formData.append(`products[${index}][quantity]`, item.quantity.toString())
       })
 
-      await createHamper(formData)
+      // Log the form data for debugging
+      console.log("Submitting hamper form data:")
+      for (const pair of formData.entries()) {
+        console.log(pair[0], pair[1])
+      }
+
+      const result = await createHamper(formData)
+      console.log("Hamper created successfully:", result)
       toast.success("Hamper added successfully")
 
       // Reset form
@@ -446,3 +451,4 @@ export function AddHamperForm({ onSuccess}: AddHamperFormProps) {
     </div>
   )
 }
+

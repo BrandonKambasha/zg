@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
-import { CheckCircle, Package, ArrowRight, ShoppingBag, Calendar } from "lucide-react"
+import { CheckCircle, Package, ArrowRight, ShoppingBag, Calendar, MapPin, Truck } from "lucide-react"
 import { useCart } from "../../hooks/useCart"
 import { getLatestOrder } from "../../lib/api/orders"
 import type { Order, OrderItem } from "../../Types"
@@ -82,7 +82,7 @@ export default function OrderConfirmationPage() {
 
   // Format price
   const formatPrice = (price: number) => {
-    return price
+    return Number(price).toFixed(2)
   }
 
   // Get status badge color
@@ -101,8 +101,15 @@ export default function OrderConfirmationPage() {
     }
   }
 
-  console.log("Order items:", order?.orderItems)
-  console.log("Products:", order?.products)
+  // Check if there are any items to display
+  const hasProducts = order?.products && order.products.length > 0
+  const hasHampers = order?.hampers && order.hampers.length > 0
+  const hasOrderItems = order?.orderItems && order.orderItems.length > 0
+  const hasAnyItems = hasProducts || hasHampers || hasOrderItems
+
+  // Calculate subtotal (total - shipping)
+  const shippingCost = order?.shipping_cost ?? 0
+  const subtotal = order ? order.total_amount - shippingCost : 0
 
   return (
     <div className="container mx-auto px-4 py-12">
@@ -155,12 +162,33 @@ export default function OrderConfirmationPage() {
                 </div>
               </div>
 
+              {/* Shipping Address */}
+              {order.shipping_address && (
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-start mb-2">
+                    <MapPin className="h-5 w-5 text-teal-600 mr-2 mt-0.5" />
+                    <h3 className="font-medium">Shipping Address</h3>
+                  </div>
+                  <p className="text-gray-700 whitespace-pre-line ml-7">{order.shipping_address}</p>
+
+                  {order.zim_contact && (
+                    <div className="mt-2 ml-7">
+                      <p className="text-sm text-gray-500">Zimbabwe Contact:</p>
+                      <p className="text-gray-700">
+                        {order.zim_name || "Recipient"}: {order.zim_contact}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Order Items */}
               <div className="border-t border-gray-200 pt-4">
                 <h3 className="font-medium mb-3">Items Ordered</h3>
                 <div className="space-y-4">
-                  {order.products && order.products.length > 0 ? (
-                    order.products.map((productInfo, index) => (
+                  {/* Products */}
+                  {hasProducts &&
+                    order?.products?.map((productInfo, index) => (
                       <div key={index} className="flex items-center">
                         <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border border-gray-200 mr-4">
                           {productInfo.product.image_url ? (
@@ -186,16 +214,17 @@ export default function OrderConfirmationPage() {
                           <p className="text-sm text-gray-500">${formatPrice(productInfo.price)} each</p>
                         </div>
                       </div>
-                    ))
-                  ) : order.orderItems && order.orderItems.length > 0 ? (
-                    // Fallback to orderItems if products array is not available
-                    order.orderItems.map((item: OrderItem) => (
-                      <div key={item.id} className="flex items-center">
+                    ))}
+
+                  {/* Hampers */}
+                  {hasHampers &&
+                    order?.hampers?.map((hamperInfo, index) => (
+                      <div key={`hamper-${index}`} className="flex items-center">
                         <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border border-gray-200 mr-4">
-                          {item.product?.image_url ? (
+                          {hamperInfo.hamper.image_url ? (
                             <Image
-                              src={getFullImageUrl(item.product.image_url) || "/placeholder.svg"}
-                              alt={item.product.name}
+                              src={getFullImageUrl(hamperInfo.hamper.image_url) || "/placeholder.svg"}
+                              alt={hamperInfo.hamper.name}
                               width={64}
                               height={64}
                               className="h-full w-full object-cover object-center"
@@ -207,7 +236,53 @@ export default function OrderConfirmationPage() {
                           )}
                         </div>
                         <div className="flex-1">
-                          <h4 className="font-medium text-gray-900">{item.product.name}</h4>
+                          <h4 className="font-medium text-gray-900">
+                            {hamperInfo.hamper.name}
+                            <span className="ml-1 text-xs text-teal-600">(Hamper)</span>
+                          </h4>
+                          <p className="text-sm text-gray-500">Qty: {hamperInfo.quantity}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium">${formatPrice(hamperInfo.price * hamperInfo.quantity)}</p>
+                          <p className="text-sm text-gray-500">${formatPrice(hamperInfo.price)} each</p>
+                        </div>
+                      </div>
+                    ))}
+
+                  {/* Fallback to orderItems if products and hampers arrays are not available */}
+                  {!hasProducts &&
+                    !hasHampers &&
+                    hasOrderItems &&
+                    order.orderItems.map((item: OrderItem) => (
+                      <div key={item.id} className="flex items-center">
+                        <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border border-gray-200 mr-4">
+                          {item.product?.image_url ? (
+                            <Image
+                              src={getFullImageUrl(item.product.image_url) || "/placeholder.svg"}
+                              alt={item.product.name}
+                              width={64}
+                              height={64}
+                              className="h-full w-full object-cover object-center"
+                            />
+                          ) : item.hamper?.image_url ? (
+                            <Image
+                              src={getFullImageUrl(item.hamper.image_url) || "/placeholder.svg"}
+                              alt={item.hamper.name}
+                              width={64}
+                              height={64}
+                              className="h-full w-full object-cover object-center"
+                            />
+                          ) : (
+                            <div className="h-full w-full bg-gray-200 flex items-center justify-center">
+                              <span className="text-xs text-gray-500">No image</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-medium text-gray-900">
+                            {item.product ? item.product.name : item.hamper ? item.hamper.name : "Unknown Item"}
+                            {item.hamper && <span className="ml-1 text-xs text-teal-600">(Hamper)</span>}
+                          </h4>
                           <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
                         </div>
                         <div className="text-right">
@@ -215,18 +290,35 @@ export default function OrderConfirmationPage() {
                           <p className="text-sm text-gray-500">${formatPrice(item.price)} each</p>
                         </div>
                       </div>
-                    ))
-                  ) : (
-                    <p className="text-gray-500">No items found in this order.</p>
-                  )}
+                    ))}
+
+                  {/* No items message - only show if there are no items of any kind */}
+                  {!hasAnyItems && <p className="text-gray-500">No items found in this order.</p>}
                 </div>
               </div>
 
-              {/* Order Total */}
+              {/* Order Total with Shipping Cost */}
               <div className="border-t border-gray-200 mt-6 pt-6">
-                <div className="flex justify-between font-medium">
-                  <span>Total</span>
-                  <span>${formatPrice(order.total_amount)}</span>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Subtotal</span>
+                    <span>${formatPrice(subtotal)}</span>
+                  </div>
+
+                  <div className="flex justify-between">
+                    <div className="flex items-center">
+                      <Truck className="h-4 w-4 text-gray-500 mr-1" />
+                      <span className="text-gray-600">Shipping</span>
+                    </div>
+                    <span>${formatPrice(shippingCost)}</span>
+                  </div>
+
+                  <div className="border-t border-gray-200 pt-2 mt-2">
+                    <div className="flex justify-between font-medium text-lg">
+                      <span>Total</span>
+                      <span>${formatPrice(order.total_amount)}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

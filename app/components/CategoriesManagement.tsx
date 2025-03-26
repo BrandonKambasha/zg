@@ -2,21 +2,18 @@
 
 import { useState, useEffect } from "react"
 import { getCategories, deleteCategory } from "../lib/api/categories"
-import { Loader2, Search, Edit, Trash2, AlertTriangle, PlusCircle, ChevronLeft, Tag } from 'lucide-react'
+import { Loader2, Search, Edit, Trash2, AlertTriangle, PlusCircle, ChevronLeft, Tag } from "lucide-react"
 import toast from "react-hot-toast"
 import Image from "next/image"
 import { EditCategoryForm } from "./EditCategoryForm"
 import type { Category } from "../Types"
 import { apiBaseUrl } from "../lib/axios"
 
-
 interface CategoriesManagementProps {
   onAddNew: () => void
 }
 
-export function CategoriesManagement({
-  onAddNew,
-}: CategoriesManagementProps) {
+export function CategoriesManagement({ onAddNew }: CategoriesManagementProps) {
   const [categories, setCategories] = useState<Category[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -245,3 +242,4 @@ export function CategoriesManagement({
     </div>
   )
 }
+

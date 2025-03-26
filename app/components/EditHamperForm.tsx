@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import toast from "react-hot-toast"
-import { Loader2, Plus, X, Minus } from 'lucide-react'
+import { Loader2, Plus, X, Minus } from "lucide-react"
 import { updateHamper } from "../lib/api/hampers"
 import { getCategories } from "../lib/api/categories"
 import { apiBaseUrl } from "../lib/axios"
@@ -33,11 +33,7 @@ interface EditHamperFormProps {
   onSuccess: (updatedHamper: Hamper) => void
 }
 
-export function EditHamperForm({
-  hamper,
-  products,
-  onSuccess,
-}: EditHamperFormProps) {
+export function EditHamperForm({ hamper, products, onSuccess }: EditHamperFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [image, setImage] = useState<File | null>(null)
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null)
@@ -70,22 +66,22 @@ export function EditHamperForm({
   // Fetch hamper categories
   useEffect(() => {
     async function fetchCategories() {
-      setIsLoadingCategories(true);
+      setIsLoadingCategories(true)
       try {
-        const categoriesData = await getCategories();
+        const categoriesData = await getCategories()
         // Filter categories to only include those with type 'hampers'
-        const hamperCategories = categoriesData.filter(category => category.type === 'hampers') || [];
-        setCategories(hamperCategories);
+        const hamperCategories = categoriesData.filter((category) => category.type === "hampers") || []
+        setCategories(hamperCategories)
       } catch (error) {
-        console.error("Failed to fetch categories:", error);
-        toast.error("Failed to load categories");
+        console.error("Failed to fetch categories:", error)
+        toast.error("Failed to load categories")
       } finally {
-        setIsLoadingCategories(false);
+        setIsLoadingCategories(false)
       }
     }
 
-    fetchCategories();
-  }, []);
+    fetchCategories()
+  }, [])
 
   // Initialize selected products from hamper data
   // Then in the useEffect, use the existing products directly
@@ -96,6 +92,11 @@ export function EditHamperForm({
         quantity: product.pivot.quantity,
       }))
       setSelectedProducts(initialSelectedProducts)
+    }
+
+    // Set image preview if hamper has an image
+    if (hamper.image_url) {
+      setImagePreviewUrl(hamper.image_url.startsWith("http") ? hamper.image_url : `${apiBaseUrl}${hamper.image_url}`)
     }
   }, [hamper])
 
@@ -123,7 +124,7 @@ export function EditHamperForm({
   }
 
   const removeImage = () => {
-    if (imagePreviewUrl) {
+    if (imagePreviewUrl && !hamper.image_url) {
       URL.revokeObjectURL(imagePreviewUrl)
     }
     setImage(null)
@@ -321,7 +322,7 @@ export function EditHamperForm({
                 )}
 
                 {/* New image preview */}
-                {imagePreviewUrl && (
+                {imagePreviewUrl && !keepExistingImage && (
                   <div className="relative">
                     <div className="w-40 h-40 border rounded-md overflow-hidden">
                       <img
@@ -358,7 +359,7 @@ export function EditHamperForm({
                   <button
                     type="button"
                     onClick={() => {
-                      if (imagePreviewUrl) {
+                      if (imagePreviewUrl && !hamper?.image_url?.includes(imagePreviewUrl)) {
                         URL.revokeObjectURL(imagePreviewUrl)
                       }
                       setImage(null)
@@ -507,3 +508,4 @@ export function EditHamperForm({
     </div>
   )
 }
+

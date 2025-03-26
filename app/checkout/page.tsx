@@ -48,6 +48,43 @@ type ShippingFormValues = {
   delivery_zone: number | null
 }
 
+// Cancellation handler component
+function CheckoutCancellationHandler() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+
+  useEffect(() => {
+    // Check for canceled parameter and order_id
+    const canceled = searchParams.get("canceled")
+    const orderId = searchParams.get("order_id")
+
+    if (canceled === "true" && orderId) {
+      // Handle the cancellation without using toast.promise
+      // This prevents the promise from blocking navigation
+      const handleCancellation = async () => {
+        try {
+          toast.loading("Cancelling your order...", { id: "cancel-order" })
+          await handleCheckoutCancellation(orderId)
+          toast.success("Order cancelled successfully", { id: "cancel-order" })
+
+          // Redirect to cart page after a short delay
+          setTimeout(() => {
+            router.push("/cart")
+          }, 500)
+        } catch (error) {
+          console.error("Failed to cancel order:", error)
+          // Don't show error toast, just redirect to cart
+          router.push("/cart")
+        }
+      }
+
+      handleCancellation()
+    }
+  }, [searchParams, router])
+
+  return null // This component doesn't render anything
+}
+
 function CheckoutContent() {
   // Use the Zustand cart store
   const { items, totalPrice, clearCart } = useCart()
@@ -105,23 +142,6 @@ function CheckoutContent() {
   useEffect(() => {
     setMounted(true)
   }, [])
-
-  // Check for canceled parameter and order_id
-  useEffect(() => {
-    if (!mounted) return
-
-    const canceled = searchParams.get("canceled")
-    const orderId = searchParams.get("order_id")
-
-    if (canceled === "true" && orderId) {
-      // Handle the cancellation
-      toast.promise(handleCheckoutCancellation(orderId), {
-        loading: "Cancelling your order...",
-        success: "Order cancelled successfully",
-        error: "Failed to cancel order",
-      })
-    }
-  }, [searchParams, mounted])
 
   // Calculate total with shipping
   const subtotal = totalPrice
@@ -226,18 +246,20 @@ function CheckoutContent() {
       // Create the order with basic parameters
       const orderData = {
         items: items.map((item) => ({
-          product_id: item.product.id,
+          ...(item.type === "hamper" ? { hamper_id: item.product.id } : { product_id: item.product.id }),
           quantity: item.quantity,
+          type: item.type,
         })),
         shipping_address: `${shippingInfo.house_number}, ${shippingInfo.city}, ${shippingInfo.street}, ${shippingInfo.location}, ${shippingInfo.country}`,
         zim_contact: shippingInfo.zim_contact,
         phone_number: shippingInfo.phone,
         payment_method: paymentMethod,
         zim_name: shippingInfo.zim_name,
-        delivery_zone: shippingInfo.delivery_zone,
+        delivery_zone: shippingInfo.delivery_zone ? getShippingCost(shippingInfo.delivery_zone) : SHIPPING_COST,
       }
+      console.log("Creating order with data:", JSON.stringify(orderData, null, 2))
 
-      console.log("Creating order with data:", orderData)
+      // console.log("Creating order with data:", orderData)
       const order = await createOrder(orderData)
       console.log("Order created:", order)
       setOrderId(order.id)
@@ -622,6 +644,7 @@ export default function CheckoutPage() {
         </div>
       }
     >
+      <CheckoutCancellationHandler />
       <CheckoutContent />
     </Suspense>
   )
