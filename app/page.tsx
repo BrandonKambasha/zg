@@ -29,15 +29,6 @@ import { apiBaseUrl } from "./lib/axios"
 import { subscribeToNewsletter } from "./lib/api/Newsletter"
 import { Loader2 } from "lucide-react"
 
-declare global {
-  interface Window {
-    grecaptcha: {
-      ready: (callback: () => void) => void
-      execute: (siteKey: string, options: { action: string }) => Promise<string>
-    }
-  }
-}
-
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
@@ -206,7 +197,7 @@ export default function Home() {
   // Function to get full image URL with API prefix
   const getFullImageUrl = (url: string | undefined): string => {
     if (!url) {
-      return "/placeholder.svg"
+      return "/placeholder.svg?height=400&width=400"
     }
 
     // Use a stable cache-busting parameter
@@ -276,6 +267,7 @@ export default function Home() {
     },
   }
 
+  // Modified newsletter submission to handle reCAPTCHA errors gracefully
   const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -288,23 +280,21 @@ export default function Home() {
     try {
       setSubscriptionStatus("loading")
 
-      // Get reCAPTCHA token
-      if (!window.grecaptcha) {
-        throw new Error("reCAPTCHA not loaded. Please refresh the page and try again.")
+      // Try to get reCAPTCHA token, but handle errors gracefully
+      let token = ""
+      try {
+        if (window.grecaptcha) {
+          const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+          if (siteKey) {
+            token = await window.grecaptcha.execute(siteKey, { action: "newsletter_subscribe" })
+          }
+        }
+      } catch (recaptchaError) {
+        console.warn("reCAPTCHA error:", recaptchaError)
+        // Continue without reCAPTCHA token
       }
 
-      const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
-      if (!siteKey) {
-        throw new Error("reCAPTCHA site key is missing. Please check your environment variables.")
-      }
-
-      const token = await window.grecaptcha.execute(siteKey, { action: "newsletter_subscribe" })
-
-      if (!token) {
-        throw new Error("Failed to get reCAPTCHA token")
-      }
-
-      // Submit to API
+      // Submit to API with or without token
       await subscribeToNewsletter({
         email,
         recaptchaToken: token,
@@ -669,7 +659,7 @@ export default function Home() {
                     <div className="absolute inset-0 bg-gradient-to-t from-teal-900/80 to-transparent z-10"></div>
                     {category.image_url ? (
                       <Image
-                        src={getFullImageUrl(category.image_url) || "/placeholder.svg"}
+                        src={getFullImageUrl(category.image_url) || "/placeholder.svg?height=400&width=400"}
                         alt={category.name}
                         fill
                         className="object-cover group-hover:scale-110 transition-transform duration-700"
