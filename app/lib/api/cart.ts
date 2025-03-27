@@ -23,6 +23,12 @@ export const getCart = async (): Promise<CartItem[]> => {
     // Make sure we're returning the items array, not the whole response
     return response.data.items || []
   } catch (error: any) {
+    // If unauthorized, return empty array
+    if (error.response?.status === 401) {
+      console.warn("Unauthorized when fetching cart, returning empty array")
+      return []
+    }
+
     console.error("Cart fetch error:", error)
     // Return empty array instead of throwing to prevent app crashes
     return []
@@ -37,7 +43,12 @@ export const updateCart = async (items: CartItem[]): Promise<void> => {
     // This endpoint should update the cart for the authenticated user
     await axios.post("/cart", { items })
   } catch (error: any) {
-    console.error("Cart update error:", error)
+    // If unauthorized, log specific message
+    if (error.response?.status === 401) {
+      console.warn("Unauthorized when updating cart, user may need to log in again")
+    } else {
+      console.error("Cart update error:", error)
+    }
     // We'll log the error but not throw to prevent app crashes
   }
 }
@@ -50,8 +61,12 @@ export const clearCart = async (): Promise<void> => {
     // Use the dedicated endpoint to clear the cart
     await axios.delete("/cart")
   } catch (error: any) {
-    console.error("Clear cart error:", error)
-    // Log error but don't throw
+    // If unauthorized, log specific message
+    if (error.response?.status === 401) {
+      console.warn("Unauthorized when clearing cart, user may need to log in again")
+    } else {
+      console.error("Clear cart error:", error)
+    }
 
     // Fallback: try to clear by setting empty array
     try {

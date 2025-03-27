@@ -9,6 +9,7 @@ import {
   deleteAccount as apiDeleteAccount,
 } from "../lib/api/Auth"
 import axios from "../lib/axios"
+import { safeStorage, isTokenExpired } from "../lib/auth-utils"
 
 interface AuthContextType {
   user: User | null
@@ -18,6 +19,7 @@ interface AuthContextType {
   logout: () => Promise<void>
   updateUserProfile: (data: Partial<User>) => Promise<void>
   deleteAccount: (password: string) => Promise<void>
+  checkAndRefreshAuth: () => Promise<boolean>
 }
 
 export const AuthContext = createContext<AuthContextType>({
@@ -28,23 +30,58 @@ export const AuthContext = createContext<AuthContextType>({
   logout: async () => {},
   updateUserProfile: async () => {},
   deleteAccount: async () => {},
+  checkAndRefreshAuth: async () => false,
 })
 
 export default function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [authInitialized, setAuthInitialized] = useState(false)
 
+  // Initialize auth state on mount
   useEffect(() => {
-    const token = localStorage.getItem("token")
+    const initializeAuth = async () => {
+      try {
+        const token = safeStorage.getItem("token")
 
-    if (token) {
-      // Set the Authorization header for all future requests
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`
-      fetchUserProfile()
-    } else {
-      setIsLoading(false)
+        if (token) {
+          // Check if token is expired
+          if (isTokenExpired(token)) {
+            console.log("Token is expired, logging out")
+            await handleLogout()
+          } else {
+            // Set the Authorization header for all future requests
+            axios.defaults.headers.common["Authorization"] = `Bearer ${token}`
+            await fetchUserProfile()
+          }
+        } else {
+          setIsLoading(false)
+        }
+      } catch (error) {
+        console.error("Auth initialization error:", error)
+        await handleLogout()
+      } finally {
+        setAuthInitialized(true)
+      }
     }
+
+    initializeAuth()
   }, [])
+
+  // Periodically check token validity
+  useEffect(() => {
+    if (!authInitialized) return
+
+    const tokenCheckInterval = setInterval(() => {
+      const token = safeStorage.getItem("token")
+      if (token && isTokenExpired(token)) {
+        console.log("Token expired during session, logging out")
+        handleLogout()
+      }
+    }, 60000) // Check every minute
+
+    return () => clearInterval(tokenCheckInterval)
+  }, [authInitialized])
 
   const fetchUserProfile = async () => {
     try {
@@ -52,10 +89,10 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       setUser(userData)
     } catch (error: any) {
       console.error("Failed to fetch user profile:", error)
-  
+
       // If token is expired or invalid, force logout
       if (error.response?.status === 401) {
-        await logout() // Ensure user state updates immediately
+        await handleLogout() // Ensure user state updates immediately
       }
     } finally {
       setIsLoading(false)
@@ -63,8 +100,11 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const login = (token: string, userData?: User) => {
-    localStorage.removeItem("token") // Clear any old token first
-    localStorage.setItem("token", token)
+    // Clear any old token first
+    safeStorage.removeItem("token")
+
+    // Store new token
+    safeStorage.setItem("token", token)
 
     // Set the Authorization header for all future requests
     axios.defaults.headers.common["Authorization"] = `Bearer ${token}`
@@ -76,6 +116,14 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const handleLogout = async () => {
+    // Clean up regardless of API success
+    safeStorage.removeItem("token")
+    delete axios.defaults.headers.common["Authorization"]
+    setUser(null)
+    setIsLoading(false)
+  }
+
   const logout = async () => {
     try {
       // Call the API logout endpoint
@@ -83,12 +131,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("Logout API error:", error)
     } finally {
-      // Clean up regardless of API success
-      localStorage.removeItem("token")
-      delete axios.defaults.headers.common["Authorization"]
-      setUser(null)
-      setIsLoading(false) // Ensure app re-renders properly
-
+      await handleLogout()
     }
   }
 
@@ -112,15 +155,31 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       await apiDeleteAccount(password)
 
       // Clean up after successful deletion
-      localStorage.removeItem("token")
-      delete axios.defaults.headers.common["Authorization"]
-      setUser(null)
+      await handleLogout()
 
       return Promise.resolve()
     } catch (error) {
       console.error("Failed to delete account:", error)
       return Promise.reject(error)
     }
+  }
+
+  // Function to check and refresh authentication if needed
+  const checkAndRefreshAuth = async (): Promise<boolean> => {
+    const token = safeStorage.getItem("token")
+
+    if (!token) {
+      return false
+    }
+
+    if (isTokenExpired(token)) {
+      // Token is expired, try to refresh or log out
+      await handleLogout()
+      return false
+    }
+
+    // Token is valid
+    return true
   }
 
   return (
@@ -133,6 +192,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         updateUserProfile,
         deleteAccount,
+        checkAndRefreshAuth,
       }}
     >
       {children}

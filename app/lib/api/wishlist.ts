@@ -1,10 +1,11 @@
 import axios from "axios"
+import { safeStorage } from "../auth-utils"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://zg-backend-production-84b0.up.railway.app"
 
 // Helper function to get the auth token
 const getAuthHeader = () => {
-  const token = localStorage.getItem("token")
+  const token = safeStorage.getItem("token")
   return {
     Authorization: `Bearer ${token}`,
   }

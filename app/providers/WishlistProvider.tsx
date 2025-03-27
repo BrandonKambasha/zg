@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import type { Product, Hamper } from "../Types"
 import toast from "react-hot-toast"
@@ -11,6 +10,7 @@ import {
   removeFromWishlist as removeFromWishlistApi,
 } from "../lib/api/wishlist"
 import WishlistContext from "../hooks/useWishlist"
+import { safeStorage, isTokenExpired } from "../lib/auth-utils"
 
 export default function WishlistProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<any[]>([])
@@ -26,8 +26,8 @@ export default function WishlistProvider({ children }: { children: React.ReactNo
   const fetchWishlist = async () => {
     setIsLoading(true)
     try {
-      const token = localStorage.getItem("token")
-      if (!token) {
+      const token = safeStorage.getItem("token")
+      if (!token || isTokenExpired(token)) {
         setItems([])
         setIsLoading(false)
         return
@@ -37,6 +37,8 @@ export default function WishlistProvider({ children }: { children: React.ReactNo
       setItems(data)
     } catch (error) {
       console.error("Failed to fetch wishlist:", error)
+      // If there's an error, clear the wishlist to prevent stale data
+      setItems([])
     } finally {
       setIsLoading(false)
     }
@@ -44,8 +46,8 @@ export default function WishlistProvider({ children }: { children: React.ReactNo
 
   const addToWishlist = async (item: Product | Hamper, type: "product" | "hamper") => {
     try {
-      const token = localStorage.getItem("token")
-      if (!token) {
+      const token = safeStorage.getItem("token")
+      if (!token || isTokenExpired(token)) {
         toast.error("Please login to add items to your wishlist")
         return
       }
@@ -59,6 +61,11 @@ export default function WishlistProvider({ children }: { children: React.ReactNo
       if (error.response?.status === 422) {
         // Item already in wishlist
         toast.error("This item is already in your wishlist")
+      } else if (error.response?.status === 401) {
+        // Unauthorized - token might be expired
+        toast.error("Your session has expired. Please login again.")
+        // Clear items to prevent stale data
+        setItems([])
       } else {
         console.error("Failed to add to wishlist:", error)
         toast.error("Failed to add to wishlist")
@@ -68,8 +75,8 @@ export default function WishlistProvider({ children }: { children: React.ReactNo
 
   const removeFromWishlist = async (wishlistItemId: number) => {
     try {
-      const token = localStorage.getItem("token")
-      if (!token) {
+      const token = safeStorage.getItem("token")
+      if (!token || isTokenExpired(token)) {
         toast.error("Please login to manage your wishlist")
         return
       }
@@ -84,9 +91,16 @@ export default function WishlistProvider({ children }: { children: React.ReactNo
       setItems(items.filter((item) => item.id !== wishlistItemId))
 
       toast.success(`${itemName} removed from wishlist`)
-    } catch (error) {
-      console.error("Failed to remove from wishlist:", error)
-      toast.error("Failed to remove from wishlist")
+    } catch (error: any) {
+      if (error.response?.status === 401) {
+        // Unauthorized - token might be expired
+        toast.error("Your session has expired. Please login again.")
+        // Clear items to prevent stale data
+        setItems([])
+      } else {
+        console.error("Failed to remove from wishlist:", error)
+        toast.error("Failed to remove from wishlist")
+      }
     }
   }
 

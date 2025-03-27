@@ -1,13 +1,23 @@
 import axios from "../axios"
 import type { Order } from "../../Types"
+import { safeStorage, isTokenExpired } from "../auth-utils"
 
 interface OrdersParams {
   page?: number
   limit?: number
 }
 
+const checkAuth = () => {
+  const token = safeStorage.getItem("token")
+  if (!token || isTokenExpired(token)) {
+    throw new Error("Authentication required")
+  }
+}
+
 export const getOrders = async (params?: OrdersParams): Promise<Order[]> => {
   try {
+    checkAuth()
+
     let url = "/my-orders"
     const queryParams: string[] = []
 
@@ -37,6 +47,8 @@ export const getMyOrders = getOrders // Alias for clarity
 
 export const getLatestOrder = async (): Promise<Order | null> => {
   try {
+    checkAuth()
+
     console.log("Fetching latest order...")
     // Get all orders for the current user with orderItems and product details
     const orders = await getMyOrders()
@@ -59,6 +71,8 @@ export const getLatestOrder = async (): Promise<Order | null> => {
 
 export const getOrderById = async (id: string): Promise<Order> => {
   try {
+    checkAuth()
+
     const response = await axios.get(`/orders/${id}`)
     return response.data
   } catch (error: any) {
@@ -68,6 +82,8 @@ export const getOrderById = async (id: string): Promise<Order> => {
 
 export const createOrder = async (orderData: any): Promise<Order> => {
   try {
+    checkAuth()
+
     console.log("Creating order with data:", orderData)
 
     // Check if items are already transformed (have hamper_id or product_id)
@@ -143,6 +159,8 @@ export const createOrder = async (orderData: any): Promise<Order> => {
 // Add cancel order function
 export const cancelOrder = async (orderId: string): Promise<Order> => {
   try {
+    checkAuth()
+
     console.log("Cancelling order:", orderId)
     const response = await axios.post(`/orders/${orderId}/cancel`)
     console.log("Order cancelled successfully:", response.data)
@@ -156,6 +174,8 @@ export const cancelOrder = async (orderId: string): Promise<Order> => {
 // Admin functions
 export const getAllOrders = async (): Promise<Order[]> => {
   try {
+    checkAuth()
+
     const response = await axios.get("/orders")
     return response.data
   } catch (error: any) {
@@ -165,6 +185,8 @@ export const getAllOrders = async (): Promise<Order[]> => {
 
 export const updateOrderStatus = async (orderId: string, status: string): Promise<Order> => {
   try {
+    checkAuth()
+
     const response = await axios.put(`/orders/${orderId}/status`, { status })
     return response.data
   } catch (error: any) {

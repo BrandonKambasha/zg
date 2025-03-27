@@ -1,6 +1,13 @@
 import axios from "../axios"
 import type { Category } from "../../Types"
+import { safeStorage, isTokenExpired } from "../auth-utils"
 
+const checkAuth = () => {
+  const token = safeStorage.getItem("token")
+  if (!token || isTokenExpired(token)) {
+    throw new Error("Authentication required")
+  }
+}
 // Helper function to upload a file to Vercel Blob via our API route
 async function uploadToBlob(file: File, folder = "categories"): Promise<string> {
   try {
@@ -43,6 +50,8 @@ async function uploadToBlob(file: File, folder = "categories"): Promise<string> 
 
 export const getCategories = async (): Promise<Category[]> => {
   try {
+    checkAuth()
+
     // Use a stable cache-busting parameter
     const response = await axios.get(`/categories?v=${Date.now()}`, {
       headers: {
@@ -71,6 +80,8 @@ export const getCategories = async (): Promise<Category[]> => {
 
 export const getCategoryById = async (id: string): Promise<Category> => {
   try {
+    checkAuth()
+
     const response = await axios.get(`/categories/${id}?v=${Date.now()}`, {
       headers: {
         "Cache-Control": "no-cache",
@@ -87,6 +98,8 @@ export const getCategoryById = async (id: string): Promise<Category> => {
 
 export const getCategoryWithProducts = async (id: string): Promise<{ category: Category; products: any[] }> => {
   try {
+    checkAuth()
+
     const response = await axios.get(`/categories/${id}/products?v=${Date.now()}`, {
       headers: {
         "Cache-Control": "no-cache",

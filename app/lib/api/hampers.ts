@@ -1,6 +1,13 @@
 import axios from "../axios"
 import type { Hamper } from "../../Types"
+import { safeStorage, isTokenExpired } from "../auth-utils"
 
+const checkAuth = () => {
+  const token = safeStorage.getItem("token")
+  if (!token || isTokenExpired(token)) {
+    throw new Error("Authentication required")
+  }
+}
 // Helper function to upload a file to Vercel Blob via our API route
 async function uploadToBlob(file: File, folder = "hampers"): Promise<string> {
   try {
@@ -54,6 +61,8 @@ async function uploadToBlob(file: File, folder = "hampers"): Promise<string> {
 
 export const getHampers = async (): Promise<Hamper[]> => {
   try {
+    checkAuth()
+
     const response = await axios.get("/hampers")
     return response.data
   } catch (error: any) {
@@ -63,6 +72,8 @@ export const getHampers = async (): Promise<Hamper[]> => {
 
 export const getHamperById = async (id: string): Promise<Hamper> => {
   try {
+    checkAuth()
+
     const response = await axios.get(`/hampers/${id}`)
     return response.data
   } catch (error: any) {
@@ -72,6 +83,8 @@ export const getHamperById = async (id: string): Promise<Hamper> => {
 
 export const getUserHampers = async (): Promise<Hamper[]> => {
   try {
+    checkAuth()
+
     const response = await axios.get("/my-hampers")
     return response.data
   } catch (error: any) {
@@ -139,6 +152,8 @@ export const createHamper = async (hamperData: FormData): Promise<Hamper> => {
 
 export const createCustomHamper = async (hamperData: FormData): Promise<Hamper> => {
   try {
+    checkAuth()
+
     console.log("Starting custom hamper creation with image")
 
     // Extract image from FormData
@@ -263,6 +278,8 @@ export const updateHamper = async (id: string, hamperData: FormData): Promise<Ha
 
 export const updateCustomHamper = async (id: string, hamperData: FormData): Promise<Hamper> => {
   try {
+    checkAuth()
+
     console.log("Starting custom hamper update with image, ID:", id)
 
     // Extract image from FormData
@@ -337,6 +354,8 @@ export const deleteHamper = async (id: string): Promise<void> => {
 
 export const deleteCustomHamper = async (id: string): Promise<void> => {
   try {
+    checkAuth()
+
     await axios.delete(`/custom-hampers/${id}`)
   } catch (error: any) {
     throw new Error(error.response?.data?.message || "Failed to delete custom hamper")
