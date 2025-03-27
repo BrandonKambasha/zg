@@ -1,5 +1,5 @@
 import axios from "axios"
-import { getStoredToken } from "./auth-utils"
+import { getStoredToken, isAuthRequiredForEndpoint } from "./auth-utils"
 
 // export const apiBaseUrl="http://192.168.0.123:8000";
 export const apiBaseUrl = "https://zg-backend-production-84b0.up.railway.app"
@@ -15,10 +15,12 @@ const instance = axios.create({
 // Add request interceptor for debugging and token management
 instance.interceptors.request.use(
   async (config) => {
-    console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`)
+    console.log(`API Request: ${config.method?.toUpperCase()} ${config.url || ""}`)
 
-    // Add auth token if available, with expiration check
-    if (typeof window !== "undefined") {
+    // Only add auth token for endpoints that require it
+    const url = config.url || ""
+
+    if (typeof window !== "undefined" && isAuthRequiredForEndpoint(url)) {
       const token = getStoredToken()
 
       if (token) {

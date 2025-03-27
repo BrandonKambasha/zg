@@ -20,14 +20,22 @@ export default function AuthStatusMonitor() {
       try {
         const token = safeStorage.getItem("token")
 
-        if (token && isTokenExpired(token)) {
-          console.log("Token expired, logging out and resetting state")
-          // Token is expired, log out and reset cart
-          logout()
-          resetCartState()
+        // Only check if token exists
+        if (token) {
+          try {
+            if (isTokenExpired(token)) {
+              console.log("Token expired, logging out and resetting state")
+              // Token is expired, log out and reset cart
+              logout()
+              resetCartState()
+            }
+          } catch (validationError) {
+            console.warn("Token validation error, removing invalid token:", validationError)
+            safeStorage.removeItem("token")
+          }
         }
       } catch (error) {
-        console.error("Error checking token validity:", error)
+        console.warn("Error checking token validity:", error)
       }
     }
 

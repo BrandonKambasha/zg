@@ -1,13 +1,20 @@
 import axios from "../axios"
 import type { Category } from "../../Types"
-import { safeStorage, isTokenExpired } from "../auth-utils"
+import { safeStorage, isTokenExpired, isAuthRequiredForEndpoint } from "../auth-utils"
 
-const checkAuth = () => {
+// Check auth before making requests that require it
+const checkAuth = (endpoint: string) => {
+  // Only check auth for endpoints that require it
+  if (!isAuthRequiredForEndpoint(endpoint)) {
+    return
+  }
+
   const token = safeStorage.getItem("token")
   if (!token || isTokenExpired(token)) {
     throw new Error("Authentication required")
   }
 }
+
 // Helper function to upload a file to Vercel Blob via our API route
 async function uploadToBlob(file: File, folder = "categories"): Promise<string> {
   try {
@@ -50,10 +57,11 @@ async function uploadToBlob(file: File, folder = "categories"): Promise<string> 
 
 export const getCategories = async (): Promise<Category[]> => {
   try {
-    checkAuth()
+    const endpoint = "/categories"
+    // Categories should be public, so we don't check auth
 
     // Use a stable cache-busting parameter
-    const response = await axios.get(`/categories?v=${Date.now()}`, {
+    const response = await axios.get(`${endpoint}?v=${Date.now()}`, {
       headers: {
         "Cache-Control": "no-cache",
         Pragma: "no-cache",
@@ -80,9 +88,10 @@ export const getCategories = async (): Promise<Category[]> => {
 
 export const getCategoryById = async (id: string): Promise<Category> => {
   try {
-    checkAuth()
+    const endpoint = `/categories/${id}`
+    // Categories should be public, so we don't check auth
 
-    const response = await axios.get(`/categories/${id}?v=${Date.now()}`, {
+    const response = await axios.get(`${endpoint}?v=${Date.now()}`, {
       headers: {
         "Cache-Control": "no-cache",
         Pragma: "no-cache",
@@ -98,9 +107,10 @@ export const getCategoryById = async (id: string): Promise<Category> => {
 
 export const getCategoryWithProducts = async (id: string): Promise<{ category: Category; products: any[] }> => {
   try {
-    checkAuth()
+    const endpoint = `/categories/${id}/products`
+    // Categories with products should be public, so we don't check auth
 
-    const response = await axios.get(`/categories/${id}/products?v=${Date.now()}`, {
+    const response = await axios.get(`${endpoint}?v=${Date.now()}`, {
       headers: {
         "Cache-Control": "no-cache",
         Pragma: "no-cache",
@@ -116,6 +126,9 @@ export const getCategoryWithProducts = async (id: string): Promise<{ category: C
 
 export const createCategory = async (categoryData: FormData): Promise<Category> => {
   try {
+    const endpoint = "/categories"
+    checkAuth(endpoint)
+
     console.log("Starting category creation with image")
 
     // Extract image from FormData
@@ -154,7 +167,7 @@ export const createCategory = async (categoryData: FormData): Promise<Category> 
     }
 
     // Send to backend
-    const response = await axios.post("/categories", newFormData, {
+    const response = await axios.post(endpoint, newFormData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
@@ -163,12 +176,19 @@ export const createCategory = async (categoryData: FormData): Promise<Category> 
     console.log("Category created successfully:", response.data)
     return response.data
   } catch (error: any) {
+    if (error.message === "Authentication required") {
+      throw new Error("Please log in to create categories")
+    }
+
     throw new Error(error.response?.data?.message || "Failed to create category")
   }
 }
 
 export const updateCategory = async (id: string, categoryData: FormData): Promise<Category> => {
   try {
+    const endpoint = `/categories/${id}`
+    checkAuth(endpoint)
+
     console.log("Updating category with ID:", id)
 
     // Log the initial form data
@@ -215,7 +235,7 @@ export const updateCategory = async (id: string, categoryData: FormData): Promis
     }
 
     // Send to backend
-    const response = await axios.post(`/categories/${id}`, newFormData, {
+    const response = await axios.post(endpoint, newFormData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
@@ -224,14 +244,25 @@ export const updateCategory = async (id: string, categoryData: FormData): Promis
     console.log("Category updated successfully:", response.data)
     return response.data
   } catch (error: any) {
+    if (error.message === "Authentication required") {
+      throw new Error("Please log in to update categories")
+    }
+
     throw new Error(error.response?.data?.message || "Failed to update category")
   }
 }
 
 export const deleteCategory = async (id: string): Promise<void> => {
   try {
-    await axios.delete(`/categories/${id}`)
+    const endpoint = `/categories/${id}`
+    checkAuth(endpoint)
+
+    await axios.delete(endpoint)
   } catch (error: any) {
+    if (error.message === "Authentication required") {
+      throw new Error("Please log in to delete categories")
+    }
+
     throw new Error(error.response?.data?.message || "Failed to delete category")
   }
 }

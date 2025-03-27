@@ -2,25 +2,42 @@
  * Utility functions for token management and authentication
  */
 
-// Token expiration check
+// Token expiration check with improved error handling
 export function isTokenExpired(token: string): boolean {
     if (!token) return true
   
     try {
+      // Check if token has the correct format (should have 2 dots for JWT)
+      if (!token.includes(".") || token.split(".").length !== 3) {
+        console.warn("Invalid token format")
+        return true
+      }
+  
       // JWT tokens are split into three parts by dots
       const payload = token.split(".")[1]
   
-      // The middle part contains the payload, which we need to decode
-      const decodedPayload = JSON.parse(atob(payload))
+      // Make sure the payload is properly padded for base64 decoding
+      // (JWT base64url encoding removes padding, we need to add it back for atob)
+      const base64 = payload.replace(/-/g, "+").replace(/_/g, "/")
+      const pad = base64.length % 4
+      const paddedPayload = pad ? base64 + "=".repeat(4 - pad) : base64
   
-      // Check if the token has an expiration time
-      if (!decodedPayload.exp) return false
+      try {
+        // The middle part contains the payload, which we need to decode
+        const decodedPayload = JSON.parse(atob(paddedPayload))
   
-      // Compare expiration time with current time (exp is in seconds, Date.now() is in milliseconds)
-      const expirationTime = decodedPayload.exp * 1000
-      return Date.now() >= expirationTime
+        // Check if the token has an expiration time
+        if (!decodedPayload.exp) return false
+  
+        // Compare expiration time with current time (exp is in seconds, Date.now() is in milliseconds)
+        const expirationTime = decodedPayload.exp * 1000
+        return Date.now() >= expirationTime
+      } catch (decodeError) {
+        console.warn("Failed to decode token payload:", decodeError)
+        return true
+      }
     } catch (error) {
-      console.error("Error checking token expiration:", error)
+      console.warn("Error checking token expiration:", error)
       return true // If we can't verify, assume it's expired for safety
     }
   }
@@ -30,15 +47,20 @@ export function isTokenExpired(token: string): boolean {
     try {
       const token = localStorage.getItem("token")
   
-      // If no token or token is expired, return null
-      if (!token || isTokenExpired(token)) {
+      // If no token, return null
+      if (!token) {
+        return null
+      }
+  
+      // If token is expired, remove it and return null
+      if (isTokenExpired(token)) {
         localStorage.removeItem("token") // Clean up expired token
         return null
       }
   
       return token
     } catch (error) {
-      console.error("Error retrieving token:", error)
+      console.warn("Error retrieving token:", error)
       return null
     }
   }
@@ -49,7 +71,7 @@ export function isTokenExpired(token: string): boolean {
       try {
         return localStorage.getItem(key)
       } catch (error) {
-        console.error(`Error getting item ${key} from localStorage:`, error)
+        console.warn(`Error getting item ${key} from localStorage:`, error)
         return null
       }
     },
@@ -59,7 +81,7 @@ export function isTokenExpired(token: string): boolean {
         localStorage.setItem(key, value)
         return true
       } catch (error) {
-        console.error(`Error setting item ${key} in localStorage:`, error)
+        console.warn(`Error setting item ${key} in localStorage:`, error)
         return false
       }
     },
@@ -69,7 +91,7 @@ export function isTokenExpired(token: string): boolean {
         localStorage.removeItem(key)
         return true
       } catch (error) {
-        console.error(`Error removing item ${key} from localStorage:`, error)
+        console.warn(`Error removing item ${key} from localStorage:`, error)
         return false
       }
     },
@@ -79,27 +101,36 @@ export function isTokenExpired(token: string): boolean {
         localStorage.clear()
         return true
       } catch (error) {
-        console.error("Error clearing localStorage:", error)
+        console.warn("Error clearing localStorage:", error)
         return false
       }
     },
   }
   
-  // Function to handle token refresh
-  export async function refreshAuthToken(refreshToken?: string): Promise<string | null> {
-    // This is a placeholder - implement your actual token refresh logic here
-    // using your backend API endpoint for refreshing tokens
-    try {
-      // Example implementation:
-      // const response = await axios.post('/api/refresh-token', { refreshToken })
-      // return response.data.token
+  // Function to check if authentication is required for a specific API endpoint
+  export function isAuthRequiredForEndpoint(endpoint: string): boolean {
+    // List of endpoints that don't require authentication
+    const publicEndpoints = [
+      "/products",
+      "/categories",
+      "/hampers",
+      "/featured",
+      "/search",
+      "/login",
+      "/register",
+      "/password/reset",
+      "/password/email",
+    ]
   
-      // For now, just return null to indicate refresh failed
-      return null
-    } catch (error) {
-      console.error("Error refreshing token:", error)
-      return null
+    // Check if the endpoint is in the public list
+    for (const publicEndpoint of publicEndpoints) {
+      if (endpoint.includes(publicEndpoint)) {
+        return false
+      }
     }
+  
+    // By default, require authentication
+    return true
   }
   
   

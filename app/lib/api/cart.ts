@@ -1,5 +1,6 @@
 import axios from "../axios"
 import type { Product, Hamper } from "../../Types"
+import { safeStorage, isTokenExpired } from "../auth-utils"
 
 // Updated to support both products and hampers
 interface CartItem {
@@ -12,11 +13,21 @@ interface CartResponse {
   items: CartItem[]
 }
 
+// Check auth before making requests
+const checkAuth = () => {
+  const token = safeStorage.getItem("token")
+  if (!token || isTokenExpired(token)) {
+    throw new Error("Authentication required")
+  }
+}
+
 /**
  * Get the current user's cart from the server
  */
 export const getCart = async (): Promise<CartItem[]> => {
   try {
+    checkAuth()
+
     // This endpoint should return the cart for the authenticated user
     const response = await axios.get("/cart")
 
@@ -24,7 +35,7 @@ export const getCart = async (): Promise<CartItem[]> => {
     return response.data.items || []
   } catch (error: any) {
     // If unauthorized, return empty array
-    if (error.response?.status === 401) {
+    if (error.message === "Authentication required" || error.response?.status === 401) {
       console.warn("Unauthorized when fetching cart, returning empty array")
       return []
     }
@@ -40,11 +51,13 @@ export const getCart = async (): Promise<CartItem[]> => {
  */
 export const updateCart = async (items: CartItem[]): Promise<void> => {
   try {
+    checkAuth()
+
     // This endpoint should update the cart for the authenticated user
     await axios.post("/cart", { items })
   } catch (error: any) {
     // If unauthorized, log specific message
-    if (error.response?.status === 401) {
+    if (error.message === "Authentication required" || error.response?.status === 401) {
       console.warn("Unauthorized when updating cart, user may need to log in again")
     } else {
       console.error("Cart update error:", error)
@@ -58,11 +71,13 @@ export const updateCart = async (items: CartItem[]): Promise<void> => {
  */
 export const clearCart = async (): Promise<void> => {
   try {
+    checkAuth()
+
     // Use the dedicated endpoint to clear the cart
     await axios.delete("/cart")
   } catch (error: any) {
     // If unauthorized, log specific message
-    if (error.response?.status === 401) {
+    if (error.message === "Authentication required" || error.response?.status === 401) {
       console.warn("Unauthorized when clearing cart, user may need to log in again")
     } else {
       console.error("Clear cart error:", error)
