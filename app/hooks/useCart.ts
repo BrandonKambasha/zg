@@ -2,11 +2,10 @@
 
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState } from "react"
 import { useAuth } from "./useAuth"
 import type { Product, Hamper } from "../Types"
 import { getCart, updateCart, clearCart as clearServerCart } from "../lib/api/cart"
-import { safeStorage } from "../lib/auth-utils"
 
 // Updated server cart item interface to support both products and hampers
 interface ServerCartItem {
@@ -47,7 +46,6 @@ interface CartState {
   lastUpdated: number
   userId: string | null
   isLoading: boolean
-  cartVersion: number // Add version to force rehydration when needed
 }
 
 interface CartActions {
@@ -61,39 +59,9 @@ interface CartActions {
   calculateTotalPrice: () => void
   setUserId: (userId: string | null) => void
   setIsLoading: (isLoading: boolean) => void
-  resetCartState: () => void // Add function to completely reset cart state
-  incrementVersion: () => void // Add function to increment version
 }
 
 type CartStore = CartState & CartActions
-
-// Create a custom storage implementation with error handling
-const customStorage = {
-  getItem: (name: string): string | null => {
-    try {
-      const str = safeStorage.getItem(name)
-      if (!str) return null
-      return str
-    } catch (error) {
-      console.error(`Error getting ${name} from storage:`, error)
-      return null
-    }
-  },
-  setItem: (name: string, value: string): void => {
-    try {
-      safeStorage.setItem(name, value)
-    } catch (error) {
-      console.error(`Error setting ${name} in storage:`, error)
-    }
-  },
-  removeItem: (name: string): void => {
-    try {
-      safeStorage.removeItem(name)
-    } catch (error) {
-      console.error(`Error removing ${name} from storage:`, error)
-    }
-  },
-}
 
 // Create the store with persistence to localStorage
 export const useCartStore = create<CartStore>()(
@@ -105,30 +73,6 @@ export const useCartStore = create<CartStore>()(
       lastUpdated: Date.now(),
       userId: null, // Initialize with no user
       isLoading: false,
-      cartVersion: 1, // Initialize version
-
-      incrementVersion: () => {
-        set({ cartVersion: get().cartVersion + 1 })
-      },
-
-      resetCartState: () => {
-        set({
-          items: [],
-          totalPrice: 0,
-          removedItemIds: [],
-          lastUpdated: Date.now(),
-          userId: null,
-          isLoading: false,
-          cartVersion: get().cartVersion + 1, // Increment version to force rehydration
-        })
-
-        // Force clear localStorage
-        try {
-          customStorage.removeItem("cart-storage")
-        } catch (e) {
-          console.error("Failed to clear localStorage:", e)
-        }
-      },
 
       setIsLoading: (isLoading) => {
         set({ isLoading })
@@ -237,7 +181,6 @@ export const useCartStore = create<CartStore>()(
           totalPrice: 0,
           removedItemIds,
           lastUpdated: Date.now(),
-          cartVersion: get().cartVersion + 1, // Increment version to force rehydration
         })
 
         // Also clear server cart if user is logged in
@@ -248,7 +191,23 @@ export const useCartStore = create<CartStore>()(
 
         // Force clear localStorage
         try {
-          customStorage.removeItem("cart-storage")
+          localStorage.removeItem("cart-storage")
+
+          // Additional fallback to ensure cart is cleared
+          localStorage.setItem(
+            "cart-storage",
+            JSON.stringify({
+              state: {
+                items: [],
+                totalPrice: 0,
+                removedItemIds: [],
+                lastUpdated: Date.now(),
+                userId: null,
+                isLoading: false,
+              },
+              version: 0,
+            }),
+          )
         } catch (e) {
           console.error("Failed to clear localStorage:", e)
         }
@@ -322,10 +281,7 @@ export const useCartStore = create<CartStore>()(
             })
 
             // Update the cart with merged items
-            set({
-              items: mergedCart,
-              lastUpdated: Date.now(),
-            })
+            set({ items: mergedCart })
             get().calculateTotalPrice()
           }
         } catch (error) {
@@ -337,7 +293,20 @@ export const useCartStore = create<CartStore>()(
     }),
     {
       name: "cart-storage",
-      // Use custom storage with error handling
+      // Force immediate storage updates
+      storage: {
+        getItem: (name) => {
+          const str = localStorage.getItem(name)
+          if (!str) return null
+          return JSON.parse(str)
+        },
+        setItem: (name, value) => {
+          localStorage.setItem(name, JSON.stringify(value))
+        },
+        removeItem: (name) => {
+          localStorage.removeItem(name)
+        },
+      },
       // Persist all relevant fields
       partialize: (state: CartStore) => ({
         items: state.items,
@@ -346,7 +315,6 @@ export const useCartStore = create<CartStore>()(
         lastUpdated: state.lastUpdated,
         userId: state.userId,
         isLoading: state.isLoading,
-        cartVersion: state.cartVersion,
       }),
     },
   ),
@@ -355,38 +323,16 @@ export const useCartStore = create<CartStore>()(
 // Custom hook to handle cart logic including synchronization
 export function useCart() {
   const cartStore = useCartStore()
-  const { user, isAuthenticated, checkAndRefreshAuth } = useAuth()
+  const { user, isAuthenticated } = useAuth()
   const [mounted, setMounted] = useState(false)
   const [syncTimeout, setSyncTimeout] = useState<NodeJS.Timeout | null>(null)
-
-  // Function to check auth and reset cart if needed
-  const checkAuthAndResetIfNeeded = useCallback(async () => {
-    if (!mounted) return
-
-    const isAuthValid = await checkAndRefreshAuth()
-
-    if (!isAuthValid && cartStore.userId) {
-      console.log("Auth is invalid but cart has userId, resetting cart state")
-      cartStore.resetCartState()
-    }
-  }, [mounted, checkAndRefreshAuth, cartStore])
 
   // Handle hydration mismatch
   useEffect(() => {
     setMounted(true)
     // Calculate total price on initial load
     cartStore.calculateTotalPrice()
-
-    // Check auth status on initial load
-    checkAuthAndResetIfNeeded()
-
-    // Set up periodic auth checks
-    const authCheckInterval = setInterval(() => {
-      checkAuthAndResetIfNeeded()
-    }, 300000) // Check every 5 minutes
-
-    return () => clearInterval(authCheckInterval)
-  }, [checkAuthAndResetIfNeeded])
+  }, [])
 
   // Set userId when auth state changes
   useEffect(() => {
@@ -396,14 +342,9 @@ export function useCart() {
     if (isAuthenticated && user) {
       cartStore.setUserId(user.id.toString())
     } else {
-      // If user was previously logged in but now logged out, reset cart
-      if (cartStore.userId && !isAuthenticated) {
-        cartStore.resetCartState()
-      } else {
-        cartStore.setUserId(null)
-      }
+      cartStore.setUserId(null)
     }
-  }, [isAuthenticated, user, mounted, cartStore])
+  }, [isAuthenticated, user, mounted])
 
   // Sync with server when cart changes and user is logged in
   useEffect(() => {
@@ -415,21 +356,18 @@ export function useCart() {
     }
 
     if (isAuthenticated && user && cartStore.items.length > 0) {
-      // Check auth before syncing
-      checkAuthAndResetIfNeeded().then(async () => {
-        // Debounce the sync to avoid too many requests
-        const timeoutId = setTimeout(() => {
-          cartStore.syncWithServer()
-        }, 1000) // Increased debounce time to reduce chances of race conditions
+      // Debounce the sync to avoid too many requests
+      const timeoutId = setTimeout(() => {
+        cartStore.syncWithServer()
+      }, 1000) // Increased debounce time to reduce chances of race conditions
 
-        setSyncTimeout(timeoutId)
-      })
+      setSyncTimeout(timeoutId)
     }
 
     return () => {
       if (syncTimeout) clearTimeout(syncTimeout)
     }
-  }, [isAuthenticated, user, cartStore.items, mounted, checkAuthAndResetIfNeeded])
+  }, [isAuthenticated, user, cartStore.items, mounted])
 
   // Load from server when user logs in - only once
   useEffect(() => {
@@ -442,7 +380,7 @@ export function useCart() {
       // When user logs in, load their cart from server
       cartStore.loadFromServer()
     }
-  }, [isAuthenticated, user, mounted, cartStore])
+  }, [isAuthenticated, user, mounted])
 
   return cartStore
 }

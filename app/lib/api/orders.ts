@@ -1,31 +1,14 @@
 import axios from "../axios"
 import type { Order } from "../../Types"
-import { safeStorage, isTokenExpired, isAuthRequiredForEndpoint } from "../auth-utils"
 
 interface OrdersParams {
   page?: number
   limit?: number
 }
 
-// Check auth before making requests that require it
-const checkAuth = (endpoint: string) => {
-  // Only check auth for endpoints that require it
-  if (!isAuthRequiredForEndpoint(endpoint)) {
-    return
-  }
-
-  const token = safeStorage.getItem("token")
-  if (!token || isTokenExpired(token)) {
-    throw new Error("Authentication required")
-  }
-}
-
 export const getOrders = async (params?: OrdersParams): Promise<Order[]> => {
   try {
-    const endpoint = "/my-orders"
-    checkAuth(endpoint)
-
-    let url = endpoint
+    let url = "/my-orders"
     const queryParams: string[] = []
 
     if (params) {
@@ -45,13 +28,8 @@ export const getOrders = async (params?: OrdersParams): Promise<Order[]> => {
     const response = await axios.get(url)
     return response.data
   } catch (error: any) {
-    if (error.message === "Authentication required") {
-      console.warn("Authentication required to fetch orders")
-      return []
-    }
-
     console.error("Failed to fetch orders:", error)
-    return []
+    throw new Error(error.response?.data?.message || "Failed to fetch orders")
   }
 }
 
@@ -59,9 +37,6 @@ export const getMyOrders = getOrders // Alias for clarity
 
 export const getLatestOrder = async (): Promise<Order | null> => {
   try {
-    const endpoint = "/my-orders"
-    checkAuth(endpoint)
-
     console.log("Fetching latest order...")
     // Get all orders for the current user with orderItems and product details
     const orders = await getMyOrders()
@@ -76,12 +51,7 @@ export const getLatestOrder = async (): Promise<Order | null> => {
     }
 
     return null
-  } catch (error: any) {
-    if (error.message === "Authentication required") {
-      console.warn("Authentication required to fetch latest order")
-      return null
-    }
-
+  } catch (error) {
     console.error("Failed to fetch latest order:", error)
     return null
   }
@@ -89,25 +59,15 @@ export const getLatestOrder = async (): Promise<Order | null> => {
 
 export const getOrderById = async (id: string): Promise<Order> => {
   try {
-    const endpoint = `/orders/${id}`
-    checkAuth(endpoint)
-
-    const response = await axios.get(endpoint)
+    const response = await axios.get(`/orders/${id}`)
     return response.data
   } catch (error: any) {
-    if (error.message === "Authentication required") {
-      throw new Error("Please log in to view order details")
-    }
-
     throw new Error(error.response?.data?.message || "Failed to fetch order")
   }
 }
 
 export const createOrder = async (orderData: any): Promise<Order> => {
   try {
-    const endpoint = "/orders"
-    checkAuth(endpoint)
-
     console.log("Creating order with data:", orderData)
 
     // Check if items are already transformed (have hamper_id or product_id)
@@ -161,14 +121,10 @@ export const createOrder = async (orderData: any): Promise<Order> => {
 
     console.log("Final order data:", transformedOrderData)
 
-    const response = await axios.post(endpoint, transformedOrderData)
+    const response = await axios.post("/orders", transformedOrderData)
     console.log("Order created successfully:", response.data)
     return response.data
   } catch (error: any) {
-    if (error.message === "Authentication required") {
-      throw new Error("Please log in to create an order")
-    }
-
     console.error("Order creation error:", error)
     if (error.response) {
       console.error("Response data:", error.response.data)
@@ -187,18 +143,11 @@ export const createOrder = async (orderData: any): Promise<Order> => {
 // Add cancel order function
 export const cancelOrder = async (orderId: string): Promise<Order> => {
   try {
-    const endpoint = `/orders/${orderId}/cancel`
-    checkAuth(endpoint)
-
     console.log("Cancelling order:", orderId)
-    const response = await axios.post(endpoint)
+    const response = await axios.post(`/orders/${orderId}/cancel`)
     console.log("Order cancelled successfully:", response.data)
     return response.data
   } catch (error: any) {
-    if (error.message === "Authentication required") {
-      throw new Error("Please log in to cancel orders")
-    }
-
     console.error("Order cancellation error:", error)
     throw new Error(error.response?.data?.message || "Failed to cancel order")
   }
@@ -207,32 +156,18 @@ export const cancelOrder = async (orderId: string): Promise<Order> => {
 // Admin functions
 export const getAllOrders = async (): Promise<Order[]> => {
   try {
-    const endpoint = "/orders"
-    checkAuth(endpoint)
-
-    const response = await axios.get(endpoint)
+    const response = await axios.get("/orders")
     return response.data
   } catch (error: any) {
-    if (error.message === "Authentication required") {
-      throw new Error("Please log in as admin to view all orders")
-    }
-
     throw new Error(error.response?.data?.message || "Failed to fetch all orders")
   }
 }
 
 export const updateOrderStatus = async (orderId: string, status: string): Promise<Order> => {
   try {
-    const endpoint = `/orders/${orderId}/status`
-    checkAuth(endpoint)
-
-    const response = await axios.put(endpoint, { status })
+    const response = await axios.put(`/orders/${orderId}/status`, { status })
     return response.data
   } catch (error: any) {
-    if (error.message === "Authentication required") {
-      throw new Error("Please log in as admin to update order status")
-    }
-
     throw new Error(error.response?.data?.message || "Failed to update order status")
   }
 }

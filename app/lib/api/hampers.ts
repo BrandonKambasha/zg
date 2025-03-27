@@ -1,19 +1,5 @@
 import axios from "../axios"
 import type { Hamper } from "../../Types"
-import { safeStorage, isTokenExpired, isAuthRequiredForEndpoint } from "../auth-utils"
-
-// Check auth before making requests that require it
-const checkAuth = (endpoint: string) => {
-  // Only check auth for endpoints that require it
-  if (!isAuthRequiredForEndpoint(endpoint)) {
-    return
-  }
-
-  const token = safeStorage.getItem("token")
-  if (!token || isTokenExpired(token)) {
-    throw new Error("Authentication required")
-  }
-}
 
 // Helper function to upload a file to Vercel Blob via our API route
 async function uploadToBlob(file: File, folder = "hampers"): Promise<string> {
@@ -68,53 +54,33 @@ async function uploadToBlob(file: File, folder = "hampers"): Promise<string> {
 
 export const getHampers = async (): Promise<Hamper[]> => {
   try {
-    const endpoint = "/hampers"
-    // Hampers should be public, so we don't check auth
-
-    const response = await axios.get(endpoint)
+    const response = await axios.get("/hampers")
     return response.data
   } catch (error: any) {
-    console.error("Error fetching hampers:", error)
-    return []
+    throw new Error(error.response?.data?.message || "Failed to fetch hampers")
   }
 }
 
 export const getHamperById = async (id: string): Promise<Hamper> => {
   try {
-    const endpoint = `/hampers/${id}`
-    // Individual hampers should be public, so we don't check auth
-
-    const response = await axios.get(endpoint)
+    const response = await axios.get(`/hampers/${id}`)
     return response.data
   } catch (error: any) {
-    console.error(`Error fetching hamper ${id}:`, error)
     throw new Error(error.response?.data?.message || "Failed to fetch hamper")
   }
 }
 
 export const getUserHampers = async (): Promise<Hamper[]> => {
   try {
-    const endpoint = "/my-hampers"
-    checkAuth(endpoint)
-
-    const response = await axios.get(endpoint)
+    const response = await axios.get("/my-hampers")
     return response.data
   } catch (error: any) {
-    if (error.message === "Authentication required") {
-      console.warn("Authentication required to fetch user hampers")
-      return []
-    }
-
-    console.error("Error fetching user hampers:", error)
-    return []
+    throw new Error(error.response?.data?.message || "Failed to fetch your hampers")
   }
 }
 
 export const createHamper = async (hamperData: FormData): Promise<Hamper> => {
   try {
-    const endpoint = "/hampers"
-    checkAuth(endpoint)
-
     console.log("Starting hamper creation with image")
 
     // Extract image from FormData
@@ -157,7 +123,7 @@ export const createHamper = async (hamperData: FormData): Promise<Hamper> => {
       console.log(pair[0], pair[1])
     }
 
-    const response = await axios.post(endpoint, newFormData, {
+    const response = await axios.post("/hampers", newFormData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
@@ -166,10 +132,6 @@ export const createHamper = async (hamperData: FormData): Promise<Hamper> => {
     console.log("Hamper created successfully:", response.data)
     return response.data
   } catch (error: any) {
-    if (error.message === "Authentication required") {
-      throw new Error("Please log in to create hampers")
-    }
-
     console.error("Error creating hamper:", error)
     throw new Error(error.response?.data?.message || "Failed to create hamper")
   }
@@ -177,9 +139,6 @@ export const createHamper = async (hamperData: FormData): Promise<Hamper> => {
 
 export const createCustomHamper = async (hamperData: FormData): Promise<Hamper> => {
   try {
-    const endpoint = "/custom-hampers"
-    checkAuth(endpoint)
-
     console.log("Starting custom hamper creation with image")
 
     // Extract image from FormData
@@ -222,7 +181,7 @@ export const createCustomHamper = async (hamperData: FormData): Promise<Hamper> 
       console.log(pair[0], pair[1])
     }
 
-    const response = await axios.post(endpoint, newFormData, {
+    const response = await axios.post("/custom-hampers", newFormData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
@@ -231,10 +190,6 @@ export const createCustomHamper = async (hamperData: FormData): Promise<Hamper> 
     console.log("Custom hamper created successfully:", response.data)
     return response.data
   } catch (error: any) {
-    if (error.message === "Authentication required") {
-      throw new Error("Please log in to create custom hampers")
-    }
-
     console.error("Error creating custom hamper:", error)
     throw new Error(error.response?.data?.message || "Failed to create custom hamper")
   }
@@ -242,9 +197,6 @@ export const createCustomHamper = async (hamperData: FormData): Promise<Hamper> 
 
 export const updateHamper = async (id: string, hamperData: FormData): Promise<Hamper> => {
   try {
-    const endpoint = `/hampers/${id}`
-    checkAuth(endpoint)
-
     console.log("Starting hamper update with image, ID:", id)
 
     // Extract image from FormData
@@ -295,7 +247,7 @@ export const updateHamper = async (id: string, hamperData: FormData): Promise<Ha
       console.log(pair[0], pair[1])
     }
 
-    const response = await axios.post(endpoint, newFormData, {
+    const response = await axios.post(`/hampers/${id}`, newFormData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
@@ -304,10 +256,6 @@ export const updateHamper = async (id: string, hamperData: FormData): Promise<Ha
     console.log("Hamper updated successfully:", response.data)
     return response.data
   } catch (error: any) {
-    if (error.message === "Authentication required") {
-      throw new Error("Please log in to update hampers")
-    }
-
     console.error("Error updating hamper:", error)
     throw new Error(error.response?.data?.message || "Failed to update hamper")
   }
@@ -315,9 +263,6 @@ export const updateHamper = async (id: string, hamperData: FormData): Promise<Ha
 
 export const updateCustomHamper = async (id: string, hamperData: FormData): Promise<Hamper> => {
   try {
-    const endpoint = `/custom-hampers/${id}`
-    checkAuth(endpoint)
-
     console.log("Starting custom hamper update with image, ID:", id)
 
     // Extract image from FormData
@@ -368,7 +313,7 @@ export const updateCustomHamper = async (id: string, hamperData: FormData): Prom
       console.log(pair[0], pair[1])
     }
 
-    const response = await axios.post(endpoint, newFormData, {
+    const response = await axios.post(`/custom-hampers/${id}`, newFormData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
@@ -377,10 +322,6 @@ export const updateCustomHamper = async (id: string, hamperData: FormData): Prom
     console.log("Custom hamper updated successfully:", response.data)
     return response.data
   } catch (error: any) {
-    if (error.message === "Authentication required") {
-      throw new Error("Please log in to update custom hampers")
-    }
-
     console.error("Error updating custom hamper:", error)
     throw new Error(error.response?.data?.message || "Failed to update custom hamper")
   }
@@ -388,30 +329,16 @@ export const updateCustomHamper = async (id: string, hamperData: FormData): Prom
 
 export const deleteHamper = async (id: string): Promise<void> => {
   try {
-    const endpoint = `/hampers/${id}`
-    checkAuth(endpoint)
-
-    await axios.delete(endpoint)
+    await axios.delete(`/hampers/${id}`)
   } catch (error: any) {
-    if (error.message === "Authentication required") {
-      throw new Error("Please log in to delete hampers")
-    }
-
     throw new Error(error.response?.data?.message || "Failed to delete hamper")
   }
 }
 
 export const deleteCustomHamper = async (id: string): Promise<void> => {
   try {
-    const endpoint = `/custom-hampers/${id}`
-    checkAuth(endpoint)
-
-    await axios.delete(endpoint)
+    await axios.delete(`/custom-hampers/${id}`)
   } catch (error: any) {
-    if (error.message === "Authentication required") {
-      throw new Error("Please log in to delete custom hampers")
-    }
-
     throw new Error(error.response?.data?.message || "Failed to delete custom hamper")
   }
 }

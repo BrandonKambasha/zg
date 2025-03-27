@@ -1,8 +1,7 @@
 import axios from "axios"
-import { getStoredToken, isAuthRequiredForEndpoint } from "./auth-utils"
 
 // export const apiBaseUrl="http://192.168.0.123:8000";
-export const apiBaseUrl = "https://zg-backend-production-84b0.up.railway.app"
+export const apiBaseUrl = 'https://zg-backend-production-84b0.up.railway.app';
 const instance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || "https://zg-backend-production-84b0.up.railway.app/api",
   timeout: 10000, // Increase timeout to 10 seconds
@@ -12,22 +11,16 @@ const instance = axios.create({
   },
 })
 
-// Add request interceptor for debugging and token management
+// Add request interceptor for debugging
 instance.interceptors.request.use(
-  async (config) => {
-    console.log(`API Request: ${config.method?.toUpperCase()} ${config.url || ""}`)
+  (config) => {
+    console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`)
 
-    // Only add auth token for endpoints that require it
-    const url = config.url || ""
-
-    if (typeof window !== "undefined" && isAuthRequiredForEndpoint(url)) {
-      const token = getStoredToken()
-
+    // Add auth token if available
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("token")
       if (token) {
         config.headers.Authorization = `Bearer ${token}`
-      } else {
-        // If token is expired or invalid, remove it from headers
-        delete config.headers.Authorization
       }
     }
 
@@ -39,26 +32,13 @@ instance.interceptors.request.use(
   },
 )
 
-// Add response interceptor for debugging and token handling
+// Add response interceptor for debugging
 instance.interceptors.response.use(
   (response) => {
     console.log(`API Response: ${response.status} ${response.config.url}`)
     return response
   },
-  async (error) => {
-    // Handle 401 Unauthorized errors (expired token)
-    if (error.response && error.response.status === 401) {
-      console.warn("Received 401 Unauthorized response - token may be expired")
-
-      // Clear invalid token
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("token")
-      }
-
-      // Redirect to login page if needed
-      // You can implement this based on your app's routing
-    }
-
+  (error) => {
     // Safely handle error logging
     if (error.response) {
       // The request was made and the server responded with a status code

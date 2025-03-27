@@ -10,7 +10,6 @@ import CartProvider from "./providers/CartProvider"
 import WishlistProvider from "./providers/WishlistProvider"
 import { ChevronRight } from "lucide-react"
 import Script from "next/script"
-import AuthStatusMonitor from "./components/auth-status-monitor"
 
 const inter = Inter({ subsets: ["latin"], display: "swap" })
 
@@ -35,7 +34,6 @@ export default function RootLayout({
         />
       </head>
       <body className={inter.className}>
-      <AuthStatusMonitor />
         <AuthProvider>
           <CartProvider>
             <WishlistProvider>
