@@ -4,7 +4,7 @@ import type React from "react"
 
 import Link from "next/link"
 import Image from "next/image"
-import { ShoppingCart, Heart, Eye } from "lucide-react"
+import { ShoppingCart, Heart, Eye, Star } from "lucide-react"
 import type { Product } from "../Types"
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
@@ -19,7 +19,7 @@ interface ProductGridProps {
   products: Product[]
 }
 
-export default function ProductGrid({ products }: ProductGridProps) {
+export default function ProductGrid({ products}: ProductGridProps) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
       {products.map((product, index) => (
@@ -63,17 +63,12 @@ function ProductCard({ product, index, apiBaseUrl }: ProductCardProps) {
 
   // Check if product is in wishlist and update state
   useEffect(() => {
-    try {
-      setIsInWishlistState(isInWishlist(product.id, "product"))
-    } catch (error) {
-      console.error("Error checking wishlist state:", error)
-      setIsInWishlistState(false)
-    }
+    setIsInWishlistState(isInWishlist(product.id, "product"))
   }, [isInWishlist, product.id])
 
   // Get the first product image or use a placeholder
   const getFullImageUrl = (url: string | undefined): string => {
-    if (!url) return "/placeholder.svg?height=400&width=400"
+    if (!url) return "/placeholder.svg"
     return url.startsWith("http") ? url : `${apiBaseUrl}${url}`
   }
 
@@ -81,7 +76,7 @@ function ProductCard({ product, index, apiBaseUrl }: ProductCardProps) {
   const imageUrl =
     product.productImages && product.productImages.length > 0
       ? getFullImageUrl(product.productImages[0].image_url)
-      : getFullImageUrl(product.image_url || "/placeholder.svg?height=400&width=400")
+      : getFullImageUrl(product.image_url || "/placeholder.svg")
 
   // Get the second product image for hover effect if available
   const secondImageUrl =
@@ -130,15 +125,9 @@ function ProductCard({ product, index, apiBaseUrl }: ProductCardProps) {
 
     // Simulate a small delay for better UX
     setTimeout(() => {
-      try {
-        addItem(product, 1)
-        toast.success(`${product.name} added to cart`)
-      } catch (error) {
-        console.error("Error adding to cart:", error)
-        toast.error("Failed to add to cart. Please try again.")
-      } finally {
-        setIsAddingToCart(false)
-      }
+      addItem(product, 1)
+      toast.success(`${product.name} added to cart`)
+      setIsAddingToCart(false)
     }, 500)
   }
 
@@ -211,6 +200,7 @@ function ProductCard({ product, index, apiBaseUrl }: ProductCardProps) {
             {product.name}
           </h3>
         </Link>
+
 
         <p className="text-xs text-gray-500 line-clamp-2 mb-3">{product.description}</p>
 
