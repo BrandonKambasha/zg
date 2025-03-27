@@ -50,16 +50,20 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const userData = await getUserProfile()
       setUser(userData)
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to fetch user profile:", error)
-      localStorage.removeItem("token")
-      delete axios.defaults.headers.common["Authorization"]
+  
+      // If token is expired or invalid, force logout
+      if (error.response?.status === 401) {
+        await logout() // Ensure user state updates immediately
+      }
     } finally {
       setIsLoading(false)
     }
   }
 
   const login = (token: string, userData?: User) => {
+    localStorage.removeItem("token") // Clear any old token first
     localStorage.setItem("token", token)
 
     // Set the Authorization header for all future requests
@@ -83,6 +87,8 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem("token")
       delete axios.defaults.headers.common["Authorization"]
       setUser(null)
+      setIsLoading(false) // Ensure app re-renders properly
+
     }
   }
 
