@@ -316,7 +316,7 @@ export default function OrderConfirmationPage() {
                   <div className="border-t border-gray-200 pt-2 mt-2">
                     <div className="flex justify-between font-medium text-lg">
                       <span>Total</span>
-                      <span>${formatPrice(order.total_amount+shippingCost)}</span>
+                      <span>${formatPrice(order.total_amount)}</span>
                     </div>
                   </div>
                 </div>
