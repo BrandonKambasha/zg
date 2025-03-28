@@ -33,6 +33,8 @@ import { useDebounce } from "../hooks/useDebounce"
 import ResetAppStateButton from "./ResetAppStateButton"
 // Import the reset functions directly
 import { resetAppState, resetCartAndWishlist, resetAuthState } from "../lib/reset-app-state"
+import { useAuth } from "../hooks/useAuth"
+import toast from "react-hot-toast"
 
 // Group navigation links by section
 const navigationGroups = [
@@ -80,6 +82,20 @@ export default function Header() {
   const headerRef = useRef<HTMLElement>(null)
   const router = useRouter()
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
+  const { logout, isAuthenticated } = useAuth()
+
+  // Add the handleLogout function
+  const handleLogout = async () => {
+    try {
+      await logout()
+      toast.success("Logged out successfully")
+      setIsMenuOpen(false)
+      router.push("/login")
+    } catch (error) {
+      console.error("Logout failed:", error)
+      toast.error("Failed to logout")
+    }
+  }
 
   useEffect(() => {
     const handleScroll = () => {
@@ -640,24 +656,30 @@ export default function Header() {
                     </div>
                   </Link>
 
-                  <button
-                    className="flex items-center w-full p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors text-left"
-                    onClick={() => {
-                      // Simulate a click on the logout button
-                      const logoutBtn = document.createElement("button")
-                      logoutBtn.setAttribute("type", "button")
-                      document.body.appendChild(logoutBtn)
-                      logoutBtn.click()
-                      document.body.removeChild(logoutBtn)
-                      setIsMenuOpen(false)
-                    }}
-                  >
-                    <LogOut className="h-5 w-5 mr-3 text-teal-600" />
-                    <div>
-                      <span className="font-medium block">Logout</span>
-                      <span className="text-xs text-gray-500">Sign out of your account</span>
-                    </div>
-                  </button>
+                  {isAuthenticated ? (
+                    <button
+                      className="flex items-center w-full p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors text-left"
+                      onClick={handleLogout}
+                    >
+                      <LogOut className="h-5 w-5 mr-3 text-teal-600" />
+                      <div>
+                        <span className="font-medium block">Logout</span>
+                        <span className="text-xs text-gray-500">Sign out of your account</span>
+                      </div>
+                    </button>
+                  ) : (
+                    <Link
+                      href="/login"
+                      className="flex items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <LogOut className="h-5 w-5 mr-3 text-teal-600" />
+                      <div>
+                        <span className="font-medium block">Login</span>
+                        <span className="text-xs text-gray-500">Sign in to your account</span>
+                      </div>
+                    </Link>
+                  )}
                 </div>
               )}
 
@@ -693,7 +715,6 @@ export default function Header() {
                     onClick={() => setIsMenuOpen(false)}
                   >
                     <RefreshCw className="h-5 w-5 mr-3 text-teal-600" />
-                      <span className="font-medium block">Returns &amp; Refunds</span>
                     <div>
                       <span className="font-medium block">Returns &amp; Refunds</span>
                       <span className="text-xs text-gray-500">Learn about our return policies</span>
@@ -730,56 +751,52 @@ export default function Header() {
                 <div className="space-y-4">
                   <div className="p-4 bg-gray-50 rounded-xl">
                     <h3 className="font-medium text-gray-900 mb-3">App Settings</h3>
-                    
+
                     <div className="space-y-3">
                       {/* Use the actual reset functions directly */}
-                      <button 
+                      <button
                         className="flex items-center w-full p-3 bg-white rounded-lg shadow-sm mb-3"
                         onClick={() => {
-                          resetCartAndWishlist();
-                          setIsMenuOpen(false);
+                          resetCartAndWishlist()
+                          setIsMenuOpen(false)
                         }}
                       >
                         <RefreshCw className="h-5 w-5 mr-3 text-teal-600" />
                         <span className="font-medium">Reset Cart & Wishlist</span>
                       </button>
-                      
-                      <button 
+
+                      <button
                         className="flex items-center w-full p-3 bg-white rounded-lg shadow-sm mb-3"
                         onClick={() => {
-                          resetAuthState();
-                          setIsMenuOpen(false);
+                          resetAuthState()
+                          setIsMenuOpen(false)
                         }}
                       >
                         <RefreshCw className="h-5 w-5 mr-3 text-teal-600" />
                         <span className="font-medium">Reset Auth State</span>
                       </button>
-                      
-                      <button 
+
+                      <button
                         className="flex items-center w-full p-3 bg-white rounded-lg shadow-sm"
                         onClick={() => {
-                          resetAppState();
-                          setIsMenuOpen(false);
+                          resetAppState()
+                          setIsMenuOpen(false)
                         }}
                       >
                         <RefreshCw className="h-5 w-5 mr-3 text-teal-600" />
                         <span className="font-medium">Reset Everything</span>
                       </button>
                     </div>
-                    
+
                     <p className="text-xs text-gray-500 mt-3">
                       Resetting the app state will clear your selected items and return the app to its default state.
                     </p>
                   </div>
-                  
+
                   <div className="p-4 bg-gray-50 rounded-xl">
                     <h3 className="font-medium text-gray-900 mb-3">About the App</h3>
-                    <p className="text-sm text-gray-600">
-                      Zimbabwe Groceries v1.0.0
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      © 2023 Zimbabwe Groceries. All rights reserved.
-                    </p>
+                    <p className="text-sm text-gray-600">Zimbabwe Groceries v1.0.0</p>
+                    <p className="text-xs text-gray-500 mt-1">© 2023 Zimbabwe Groceries. All rights reserved.</p>
                   </div>
                 </div>
               )}

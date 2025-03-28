@@ -103,7 +103,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
 
               {/* Wholesale Link */}
               <Link
-                href="/wholesale"
+                href="/categories/29"
                 className="inline-flex items-center text-sm font-medium px-3.5 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-colors shadow-sm group"
               >
                 <Warehouse className="h-4 w-4 mr-2" />

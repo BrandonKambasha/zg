@@ -83,7 +83,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
 
             {/* Wholesale Link */}
             <Link
-              href="/wholesale"
+              href="/categories/29"
               className="inline-flex items-center text-sm font-medium px-3.5 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-colors shadow-sm group"
             >
               <Warehouse className="h-4 w-4 mr-2" />
@@ -126,7 +126,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
           </Link>
 
           <Link
-            href="/wholesale"
+            href="/categories/29"
             className="flex-1 inline-flex items-center justify-center text-xs font-medium px-2 py-1.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg shadow-sm"
           >
             <Warehouse className="h-3.5 w-3.5 mr-1.5" />

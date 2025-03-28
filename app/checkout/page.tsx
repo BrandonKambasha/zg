@@ -7,7 +7,17 @@ import { useAuth } from "../hooks/useAuth"
 import Image from "next/image"
 import Link from "next/link"
 import toast from "react-hot-toast"
-import { ChevronLeft, CreditCard, Truck, ShieldCheck, AlertCircle, CheckCircle2, ArrowRight } from "lucide-react"
+import {
+  ChevronLeft,
+  CreditCard,
+  Truck,
+  ShieldCheck,
+  AlertCircle,
+  CheckCircle2,
+  ArrowRight,
+  Apple,
+  Smartphone,
+} from "lucide-react"
 import CheckoutForm from "../components/CheckoutForm"
 import PaymentMethodSelector from "../components/PaymentMethodSelector"
 import OrderSummary from "../components/OrderSummary"
@@ -483,23 +493,22 @@ function CheckoutContent() {
                       </button>
                     </div>
                     <div className="bg-gray-50 p-4 rounded-lg">
-                      {paymentMethod === "credit_card" ? (
+                      {paymentMethod === "credit_card" && (
                         <div className="flex items-center">
                           <CreditCard className="h-5 w-5 mr-2 text-teal-600" />
-                          <p>Credit Card (Stripe)</p>
+                          <p>Credit/Debit Card (Stripe)</p>
                         </div>
-                      ) : paymentMethod === "paypal" ? (
+                      )}
+                      {paymentMethod === "apple_pay" && (
                         <div className="flex items-center">
-                          <div className="mr-2 text-blue-600 font-bold">
-                            <span className="text-blue-800">Pay</span>
-                            <span className="text-blue-500">Pal</span>
-                          </div>
-                          <p>PayPal</p>
+                          <Apple className="h-5 w-5 mr-2 text-teal-600" />
+                          <p>Apple Pay (via Stripe)</p>
                         </div>
-                      ) : (
+                      )}
+                      {paymentMethod === "google_pay" && (
                         <div className="flex items-center">
-                          <Truck className="h-5 w-5 mr-2 text-teal-600" />
-                          <p>Pay on Delivery</p>
+                          <Smartphone className="h-5 w-5 mr-2 text-teal-600" />
+                          <p>Google Pay (via Stripe)</p>
                         </div>
                       )}
                     </div>
