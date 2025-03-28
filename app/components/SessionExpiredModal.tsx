@@ -1,19 +1,21 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { Suspense } from "react"
 
-export default function SessionExpiredModal() {
+// Create a client component that safely uses useSearchParams
+function SessionExpiredModalContent() {
   const [isVisible, setIsVisible] = useState(false)
   const router = useRouter()
-  const searchParams = useSearchParams()
 
   useEffect(() => {
-    // Check if the URL has a session=expired parameter
-    if (searchParams.get("session") === "expired") {
+    // Check URL parameters using window.location instead of useSearchParams
+    const urlParams = new URLSearchParams(window.location.search)
+    if (urlParams.get("session") === "expired") {
       setIsVisible(true)
     }
-  }, [searchParams])
+  }, [])
 
   const handleClose = () => {
     setIsVisible(false)
@@ -55,6 +57,15 @@ export default function SessionExpiredModal() {
         </div>
       </div>
     </div>
+  )
+}
+
+// Export a wrapper component that uses Suspense
+export default function SessionExpiredModal() {
+  return (
+    <Suspense fallback={null}>
+      <SessionExpiredModalContent />
+    </Suspense>
   )
 }
 
