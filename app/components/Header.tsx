@@ -205,7 +205,7 @@ export default function Header() {
             {/* Logo */}
             <Link href="/" className="flex items-center">
               <div className="relative h-10 w-10 mr-2">
-                <Image src="/images/logo.png" alt="Zimbabwe Groceries Logo" fill className="object-contain" />
+                <Image src="/images/" alt="Zimbabwe Groceries Logo" fill className="object-contain" />
               </div>
               <div>
                 <span className="text-xl font-bold text-gradient">Zimbabwe Groceries</span>
