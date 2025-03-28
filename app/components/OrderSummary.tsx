@@ -9,9 +9,11 @@ interface OrderSummaryProps {
   items: any[]
   subtotal: number
   deliveryZone?: number | null
+  exactDistance?: number | null
+  exactFee?: number | null
 }
 
-export default function OrderSummary({ items, subtotal, deliveryZone }: OrderSummaryProps) {
+export default function OrderSummary({ items, subtotal, deliveryZone, exactDistance, exactFee }: OrderSummaryProps) {
   const [isExpanded, setIsExpanded] = useState(false)
 
   // Function to get full image URL with API prefix
@@ -20,11 +22,17 @@ export default function OrderSummary({ items, subtotal, deliveryZone }: OrderSum
     return url.startsWith("http") ? url : `${apiBaseUrl}${url}`
   }
 
-  // Get shipping cost based on delivery zone
-  const getShippingCost = (zone: number | null | undefined) => {
-    if (!zone) return 5 // Default shipping cost
+  // Get shipping cost based on delivery zone or exact fee
+  const getShippingCost = () => {
+    // If we have an exact fee, use that
+    if (exactFee !== null && exactFee !== undefined) {
+      return exactFee
+    }
 
-    switch (zone) {
+    // Otherwise fall back to zone-based pricing
+    if (!deliveryZone) return 5 // Default shipping cost
+
+    switch (deliveryZone) {
       case 1:
         return 5
       case 2:
@@ -38,9 +46,29 @@ export default function OrderSummary({ items, subtotal, deliveryZone }: OrderSum
     }
   }
 
-  // Calculate shipping and total based on zone
-  const shipping = getShippingCost(deliveryZone)
+  // Calculate shipping and total based on zone or exact fee
+  const shipping = getShippingCost()
   const total = subtotal + shipping
+
+  // Get zone description based on distance
+  const getZoneDescription = () => {
+    if (exactDistance !== null && exactDistance !== undefined) {
+      if (exactDistance <= 10) {
+        return `Within 10km of Harare CBD (${exactDistance.toFixed(1)}km)`
+      } else {
+        return `${exactDistance.toFixed(1)}km from Harare CBD`
+      }
+    } else if (deliveryZone) {
+      return deliveryZone === 1
+        ? "Within 10km of Harare CBD"
+        : deliveryZone === 2
+          ? "10-20km from Harare CBD"
+          : deliveryZone === 3
+            ? "20-30km from Harare CBD"
+            : "30-40km from Harare CBD"
+    }
+    return "Standard delivery"
+  }
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm sticky top-20">
@@ -86,21 +114,20 @@ export default function OrderSummary({ items, subtotal, deliveryZone }: OrderSum
         </div>
 
         {/* Delivery zone info if available */}
-        {deliveryZone && (
+        {(deliveryZone || exactDistance) && (
           <div className="mb-4 p-3 bg-gray-50 rounded-md">
             <div className="flex items-center text-sm font-medium text-gray-700 mb-1">
               <MapPin className="h-4 w-4 mr-1.5 text-teal-600" />
-              Delivery Zone {deliveryZone}
+              {deliveryZone ? `Delivery Zone ${deliveryZone}` : "Delivery Fee"}
             </div>
-            <p className="text-xs text-gray-500">
-              {deliveryZone === 1
-                ? "Within 10km of Harare CBD"
-                : deliveryZone === 2
-                  ? "10-20km from Harare CBD"
-                  : deliveryZone === 3
-                    ? "20-30km from Harare CBD"
-                    : "30-40km from Harare CBD"}
-            </p>
+            <p className="text-xs text-gray-500">{getZoneDescription()}</p>
+
+            {/* Show fee breakdown for distances beyond 10km */}
+            {exactDistance !== null && exactDistance !== undefined && exactDistance > 10 && (
+              <p className="text-xs text-gray-500 mt-1">
+                Base fee ($5) + ${(shipping - 5).toFixed(2)} for {Math.ceil(exactDistance - 10)}km beyond 10km
+              </p>
+            )}
           </div>
         )}
 
@@ -111,7 +138,11 @@ export default function OrderSummary({ items, subtotal, deliveryZone }: OrderSum
             <span>${subtotal.toFixed(2)}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span>Shipping{deliveryZone ? ` (Zone ${deliveryZone})` : ""}</span>
+            <span>
+              Shipping
+              {deliveryZone ? ` (Zone ${deliveryZone})` : ""}
+              {exactDistance !== null && exactDistance !== undefined ? ` (${exactDistance.toFixed(1)}km)` : ""}
+            </span>
             <span>${shipping.toFixed(2)}</span>
           </div>
           <div className="flex justify-between font-medium text-base pt-2 border-t border-gray-200 mt-2">

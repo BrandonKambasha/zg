@@ -112,6 +112,8 @@ export interface Order {
   hamper_prices?: number[]
   expires_at?: string
   delivery_zone?: number
+  exact_distance?: number
+  exact_fee?: number
 }
 
 export interface Hamper {
@@ -160,5 +162,37 @@ export interface CartItem {
   product: Product | Hamper
   quantity: number
   type: "product" | "hamper"
+}
+
+export interface ShippingInfo {
+  fullName: string
+  email: string
+  phone: string
+  house_number: string
+  city: string
+  street: string
+  location: string
+  country: string
+  zim_contact: string
+  zim_name: string
+  delivery_zone: number | null
+  exact_distance?: number | null
+  exact_fee?: number | null
+}
+
+export interface ShippingFormValues {
+  fullName: string
+  email: string
+  phone: string
+  house_number: string
+  city: string
+  street: string
+  location: string
+  country: string
+  zim_contact: string
+  zim_name: string
+  delivery_zone: number | null
+  exact_distance?: number | null
+  exact_fee?: number | null
 }
 

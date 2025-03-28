@@ -7,7 +7,7 @@ import * as z from "zod"
 import DeliveryZoneMap from "./DeliveryZoneMap"
 import { AlertCircle, User, Mail, Phone, Home, MapPin, Globe, Users, CheckCircle2 } from "lucide-react"
 
-// Update the schema to ensure delivery_zone is never undefined
+// Update the schema to include exact_distance and exact_fee
 const shippingSchema = z.object({
   fullName: z.string().min(2, "Full name is required"),
   email: z.string().email("Please enter a valid email"),
@@ -20,6 +20,8 @@ const shippingSchema = z.object({
   zim_contact: z.string().min(2, "Please enter a Zimbabwe Phone number to contact in Zimbabwe"),
   zim_name: z.string().min(2, "Please enter a name of the contact in Zimbabwe"),
   delivery_zone: z.number().nullable(), // Remove optional() to ensure it's never undefined
+  exact_distance: z.number().nullable().optional(),
+  exact_fee: z.number().nullable().optional(),
 })
 
 type ShippingFormValues = z.infer<typeof shippingSchema>
@@ -33,6 +35,8 @@ interface CheckoutFormProps {
 export default function CheckoutForm({ initialValues, onSubmit, isSubmitting }: CheckoutFormProps) {
   const [showMap, setShowMap] = useState(false)
   const [deliveryZone, setDeliveryZone] = useState<number | null>(null)
+  const [exactDistance, setExactDistance] = useState<number | null>(null)
+  const [exactFee, setExactFee] = useState<number | null>(null)
   const [zoneConfirmed, setZoneConfirmed] = useState(false)
   const [zoneError, setZoneError] = useState<string | null>(null)
   const [isZoneUpdate, setIsZoneUpdate] = useState(false)
@@ -42,6 +46,8 @@ export default function CheckoutForm({ initialValues, onSubmit, isSubmitting }: 
     defaultValues: {
       ...initialValues,
       delivery_zone: null,
+      exact_distance: null,
+      exact_fee: null,
     },
   })
 
@@ -68,31 +74,48 @@ export default function CheckoutForm({ initialValues, onSubmit, isSubmitting }: 
     } else {
       setShowMap(false)
       setDeliveryZone(null)
+      setExactDistance(null)
+      setExactFee(null)
       setValue("delivery_zone", null)
+      setValue("exact_distance", null)
+      setValue("exact_fee", null)
       setZoneConfirmed(false)
     }
   }, [house_number, street, city, location, country, setValue])
 
   // Handle zone change from the map
-  const handleZoneChange = (zone: number | null) => {
+  const handleZoneChange = (zone: number | null, distance: number | null, fee: number | null) => {
     // Set flag to indicate this is a zone update, not a form submission
     setIsZoneUpdate(true)
 
     const zoneIsConfirmed = zone !== null
     setValue("delivery_zone", zone)
     setDeliveryZone(zone)
+
+    // Store the exact distance and fee
+    if (distance !== null) {
+      setValue("exact_distance", distance)
+      setExactDistance(distance)
+    }
+
+    if (fee !== null) {
+      setValue("exact_fee", fee)
+      setExactFee(fee)
+    }
+
     setZoneConfirmed(zoneIsConfirmed)
 
     // Immediately notify parent component of zone change
     if (zoneIsConfirmed) {
-      // Create a partial data object with just the delivery_zone
+      // Create a partial data object with the delivery_zone and exact values
       const partialData = {
         ...getValues(),
         delivery_zone: zone,
+        exact_distance: distance,
+        exact_fee: fee,
       }
 
       // Call onSubmit with the current form data and the new zone
-      // This won't actually submit the form, just update the parent with the new zone
       onSubmit(partialData)
 
       // Reset the flag after a short delay
@@ -441,8 +464,10 @@ export default function CheckoutForm({ initialValues, onSubmit, isSubmitting }: 
         </div>
       </div>
 
-      {/* Hidden field for delivery zone */}
+      {/* Hidden fields for delivery zone, exact distance and fee */}
       <input type="hidden" {...register("delivery_zone")} />
+      <input type="hidden" {...register("exact_distance")} />
+      <input type="hidden" {...register("exact_fee")} />
 
       {/* Delivery Zone Map - Only show for Zimbabwe addresses */}
       {showMap && (
@@ -484,10 +509,28 @@ export default function CheckoutForm({ initialValues, onSubmit, isSubmitting }: 
                   <div className="flex items-start">
                     <CheckCircle2 className="h-5 w-5 mr-2 text-green-600 mt-0.5" />
                     <div>
-                      <p className="font-medium">Your address is in Zone {deliveryZone} (Confirmed)</p>
+                      <p className="font-medium">
+                        {exactDistance !== null
+                          ? `Your address is ${exactDistance.toFixed(1)}km from the city center (Confirmed)`
+                          : `Your address is in Zone ${deliveryZone} (Confirmed)`}
+                      </p>
                       <p className="text-sm mt-1">
                         Delivery Fee: $
-                        {deliveryZone === 1 ? "5" : deliveryZone === 2 ? "8" : deliveryZone === 3 ? "12" : "15"}
+                        {exactFee !== null
+                          ? exactFee.toFixed(2)
+                          : deliveryZone === 1
+                            ? "5"
+                            : deliveryZone === 2
+                              ? "8"
+                              : deliveryZone === 3
+                                ? "12"
+                                : "15"}
+                        {exactDistance !== null && exactDistance > 10 && (
+                          <span className="block mt-1 text-xs">
+                            (Base fee: $5 + ${(exactFee! - 5).toFixed(2)} for {Math.ceil(exactDistance - 10)} additional
+                            km)
+                          </span>
+                        )}
                       </p>
                     </div>
                   </div>
@@ -497,7 +540,11 @@ export default function CheckoutForm({ initialValues, onSubmit, isSubmitting }: 
                   <div className="flex items-start">
                     <AlertCircle className="h-5 w-5 mr-2 mt-0.5" />
                     <div>
-                      <p className="font-medium">Your address is in Zone {deliveryZone} (Not Confirmed)</p>
+                      <p className="font-medium">
+                        {exactDistance !== null
+                          ? `Your address is ${exactDistance.toFixed(1)}km from the city center (Not Confirmed)`
+                          : `Your address is in Zone ${deliveryZone} (Not Confirmed)`}
+                      </p>
                       <p className="text-sm mt-1">Please confirm your delivery zone on the map before proceeding.</p>
                     </div>
                   </div>

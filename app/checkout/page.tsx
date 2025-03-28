@@ -14,39 +14,10 @@ import OrderSummary from "../components/OrderSummary"
 import { createOrder } from "../lib/api/orders"
 import { createCheckoutSession, handleCheckoutCancellation } from "../lib/api/stripe"
 import { apiBaseUrl } from "../lib/axios"
+import type { ShippingInfo, ShippingFormValues } from "../Types"
 
-// Shipping cost constant
+// Base shipping cost constant
 const SHIPPING_COST = 5
-
-// Fix the ShippingInfo type to match the state type
-type ShippingInfo = {
-  fullName: string
-  email: string
-  phone: string
-  house_number: string
-  city: string
-  street: string
-  location: string
-  country: string
-  zim_contact: string
-  zim_name: string
-  delivery_zone: number | null
-}
-
-// Define the ShippingFormValues type
-type ShippingFormValues = {
-  fullName: string
-  email: string
-  phone: string
-  house_number: string
-  city: string
-  street: string
-  location: string
-  country: string
-  zim_contact: string
-  zim_name: string
-  delivery_zone: number | null
-}
 
 // Cancellation handler component
 function CheckoutCancellationHandler() {
@@ -93,7 +64,7 @@ function CheckoutContent() {
   const searchParams = useSearchParams()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [step, setStep] = useState(1) // 1: Shipping, 2: Payment, 3: Review
-  const [shippingInfo, setShippingInfo] = useState({
+  const [shippingInfo, setShippingInfo] = useState<ShippingInfo>({
     fullName: "",
     email: "",
     phone: "",
@@ -104,7 +75,9 @@ function CheckoutContent() {
     country: "Zimbabwe",
     zim_contact: "",
     zim_name: "",
-    delivery_zone: null as number | null,
+    delivery_zone: null,
+    exact_distance: null,
+    exact_fee: null,
   })
   const [paymentMethod, setPaymentMethod] = useState("credit_card")
   const [orderId, setOrderId] = useState<number | null>(null)
@@ -120,10 +93,17 @@ function CheckoutContent() {
     return url.startsWith("http") ? url : `${apiBaseUrl}${url}`
   }
 
-  // Get shipping cost based on delivery zone
-  const getShippingCost = (zone: number | null) => {
+  // Get shipping cost based on delivery zone or exact fee
+  const getShippingCost = (zone: number | null, exactFee: number | null) => {
+    // If we have an exact fee, use that
+    if (exactFee !== null) {
+      return exactFee
+    }
+
+    // Otherwise fall back to zone-based pricing
     if (!zone) return SHIPPING_COST
 
+    // This is now just a fallback for backward compatibility
     switch (zone) {
       case 1:
         return 5
@@ -145,7 +125,7 @@ function CheckoutContent() {
 
   // Calculate total with shipping
   const subtotal = totalPrice
-  const shipping = getShippingCost(shippingInfo.delivery_zone)
+  const shipping = getShippingCost(shippingInfo.delivery_zone, shippingInfo.exact_fee ?? null)
   const total = subtotal + shipping
   const deliveryZone = shippingInfo.delivery_zone
 
@@ -208,6 +188,8 @@ function CheckoutContent() {
     const updatedData = {
       ...data,
       delivery_zone: data.delivery_zone || null,
+      exact_distance: data.exact_distance || null,
+      exact_fee: data.exact_fee || null,
     }
 
     // Always update the shipping info with the new data
@@ -255,11 +237,14 @@ function CheckoutContent() {
         phone_number: shippingInfo.phone,
         payment_method: paymentMethod,
         zim_name: shippingInfo.zim_name,
-        delivery_zone: shippingInfo.delivery_zone ? getShippingCost(shippingInfo.delivery_zone) : SHIPPING_COST,
+        delivery_zone:
+          shippingInfo.exact_fee ||
+          (shippingInfo.delivery_zone ? getShippingCost(shippingInfo.delivery_zone, null) : SHIPPING_COST),
+        exact_distance: shippingInfo.exact_distance,
+        exact_fee: shippingInfo.exact_fee,
       }
       console.log("Creating order with data:", JSON.stringify(orderData, null, 2))
 
-      // console.log("Creating order with data:", orderData)
       const order = await createOrder(orderData)
       console.log("Order created:", order)
       setOrderId(order.id)
@@ -478,7 +463,9 @@ function CheckoutContent() {
                       )}
                       {shippingInfo.delivery_zone && (
                         <div className="mt-3 inline-block bg-teal-100 text-teal-800 px-3 py-1 rounded-full text-sm font-medium">
-                          Delivery Zone: {shippingInfo.delivery_zone}
+                          {shippingInfo.exact_distance
+                            ? `${shippingInfo.exact_distance.toFixed(1)}km from CBD`
+                            : `Delivery Zone: ${shippingInfo.delivery_zone}`}
                         </div>
                       )}
                     </div>
@@ -599,7 +586,13 @@ function CheckoutContent() {
         {/* Order Summary */}
         <div className="lg:col-span-1">
           <div className="sticky top-4">
-            <OrderSummary items={items} subtotal={subtotal} deliveryZone={shippingInfo.delivery_zone} />
+            <OrderSummary
+              items={items}
+              subtotal={subtotal}
+              deliveryZone={shippingInfo.delivery_zone}
+              exactDistance={shippingInfo.exact_distance}
+              exactFee={shippingInfo.exact_fee}
+            />
 
             {/* Trust Badges */}
             <div className="bg-white rounded-xl border border-gray-200 p-6 mt-6 shadow-md">

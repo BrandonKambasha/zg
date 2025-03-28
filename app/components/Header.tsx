@@ -205,7 +205,7 @@ export default function Header() {
             {/* Logo */}
             <Link href="/" className="flex items-center">
               <div className="relative h-10 w-10 mr-2">
-                <Image src="/placeholder.svg" alt="Zimbabwe Groceries Logo" fill className="object-contain" />
+                <Image src="/images/logo.png" alt="Zimbabwe Groceries Logo" fill className="object-contain" />
               </div>
               <div>
                 <span className="text-xl font-bold text-gradient">Zimbabwe Groceries</span>
@@ -605,7 +605,7 @@ export default function Header() {
                   </Link>
 
                   <Link
-                    href="/orders"
+                    href="/account"
                     className="flex items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
                     onClick={() => setIsMenuOpen(false)}
                   >

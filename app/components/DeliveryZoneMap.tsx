@@ -20,16 +20,31 @@ const Map = dynamic(() => import("./Map"), {
   ),
 })
 
-// Zone definitions (in meters)
+// Base fee configuration
+const BASE_ZONE_RADIUS = 10000 // 10km base zone
+const BASE_DELIVERY_FEE = 5 // $5 base fee
+const ADDITIONAL_KM_FEE = 1 // $1 per additional km
+
+// We'll keep a visual representation of zones for the map
 const ZONES = [
-  { id: 1, radius: 10000, color: "#10b981", fillColor: "#10b98133", fee: 5 }, // 10km - Zone 1
-  { id: 2, radius: 20000, color: "#3b82f6", fillColor: "#3b82f633", fee: 8 }, // 20km - Zone 2
-  { id: 3, radius: 30000, color: "#f59e0b", fillColor: "#f59e0b33", fee: 12 }, // 30km - Zone 3
-  { id: 4, radius: 40000, color: "#ef4444", fillColor: "#ef444433", fee: 15 }, // 40km - Zone 4
+  { id: 1, radius: 10000, color: "#10b981", fillColor: "#10b98133", fee: 5 }, // 10km - Base Zone
+  { id: 2, radius: 20000, color: "#3b82f6", fillColor: "#3b82f633", fee: 15 }, // 20km - Visual only
+  { id: 3, radius: 30000, color: "#f59e0b", fillColor: "#f59e0b33", fee: 25 }, // 30km - Visual only
+  { id: 4, radius: 40000, color: "#ef4444", fillColor: "#ef444433", fee: 35 }, // 40km - Visual only
 ]
 
+// Calculate delivery fee based on distance
+const calculateDeliveryFee = (distanceInMeters: number) => {
+  if (distanceInMeters <= BASE_ZONE_RADIUS) {
+    return BASE_DELIVERY_FEE
+  } else {
+    const additionalKm = Math.ceil((distanceInMeters - BASE_ZONE_RADIUS) / 1000)
+    return BASE_DELIVERY_FEE + additionalKm * ADDITIONAL_KM_FEE
+  }
+}
+
 interface DeliveryZoneMapProps {
-  onZoneChange: (zone: number | null) => void
+  onZoneChange: (zone: number | null, distance: number | null, fee: number | null) => void
   initialAddress?: {
     house_number?: string
     street?: string
@@ -47,6 +62,10 @@ interface AddressSuggestion {
 }
 
 export default function DeliveryZoneMap({ onZoneChange, initialAddress = {}, formId }: DeliveryZoneMapProps) {
+  // State for exact distance and fee
+  const [exactDistance, setExactDistance] = useState<number | null>(null)
+  const [exactFee, setExactFee] = useState<number | null>(null)
+
   // Address input state
   const [addressInput, setAddressInput] = useState("")
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([])
@@ -91,7 +110,7 @@ export default function DeliveryZoneMap({ onZoneChange, initialAddress = {}, for
     if (selectedZone !== null) {
       setSelectedZone(null)
       setZoneConfirmed(false)
-      onZoneChange(null)
+      onZoneChange(null, null, null)
     }
 
     // Set new timer for debounce
@@ -153,20 +172,31 @@ export default function DeliveryZoneMap({ onZoneChange, initialAddress = {}, for
     determineZone(coords)
   }
 
-  // Determine which zone the coordinates fall into
+  // Determine which zone the coordinates fall into and calculate exact fee
   const determineZone = async (coords: [number, number]) => {
     try {
       const L = await import("leaflet")
       const distanceFromCBD = L.latLng(coords).distanceTo(L.latLng(HARARE_CBD))
 
-      let zone = null
+      // Store the exact distance for fee calculation
+      const exactDistanceKm = distanceFromCBD / 1000
+      const deliveryFee = calculateDeliveryFee(distanceFromCBD)
+
+      // For UI purposes, determine which visual zone the point falls into
+      let visualZone = null
       for (let i = ZONES.length - 1; i >= 0; i--) {
         if (distanceFromCBD <= ZONES[i].radius) {
-          zone = ZONES[i].id
+          visualZone = ZONES[i].id
         }
       }
 
-      setSelectedZone(zone)
+      // Set a custom zone object that includes both the visual zone and the exact fee
+      setSelectedZone(visualZone)
+
+      // Store the exact distance and fee
+      setExactDistance(exactDistanceKm)
+      setExactFee(deliveryFee)
+
       setZoneConfirmed(false)
     } catch (err) {
       console.error("Error determining zone:", err)
@@ -198,9 +228,19 @@ export default function DeliveryZoneMap({ onZoneChange, initialAddress = {}, for
       }
     }
 
+    // For manual selection, set the zone and use the predefined fee
     setSelectedZone(zoneId)
+
+    // Calculate distance and fee based on the selected zone
+    const zoneRadius = ZONES.find((z) => z.id === zoneId)?.radius || 10000
+    const estimatedDistance = zoneRadius / 1000 / 2 // Midpoint of the zone in km
+    const zoneFee = ZONES.find((z) => z.id === zoneId)?.fee || 5
+
+    setExactDistance(estimatedDistance)
+    setExactFee(zoneFee)
+
     setZoneConfirmed(true) // Automatically confirm when manually selected
-    onZoneChange(zoneId) // Immediately notify parent component
+    onZoneChange(zoneId, estimatedDistance, zoneFee) // Immediately notify parent component
   }
 
   // Confirm selected zone
@@ -229,13 +269,16 @@ export default function DeliveryZoneMap({ onZoneChange, initialAddress = {}, for
 
     if (selectedZone !== null) {
       setZoneConfirmed(true)
-      onZoneChange(selectedZone) // This will notify the parent component immediately
+      onZoneChange(selectedZone, exactDistance, exactFee) // This will notify the parent component immediately
     }
   }
 
-  // Get fee for selected zone
+  // Get zone fee based on exact fee or zone
   const getZoneFee = (zoneId: number | null) => {
     if (zoneId === null) return null
+    // If we have an exact fee calculated, use that
+    if (exactFee !== null) return exactFee
+    // Fallback to the zone-based fee
     const zone = ZONES.find((z) => z.id === zoneId)
     return zone ? zone.fee : null
   }
@@ -379,8 +422,14 @@ export default function DeliveryZoneMap({ onZoneChange, initialAddress = {}, for
               {zoneConfirmed ? "Delivery Zone Confirmed" : "Please Confirm Your Delivery Zone"}
             </h3>
             <p className={`text-sm mb-3 ${zoneConfirmed ? "text-green-700" : "text-yellow-700"}`}>
-              Based on your location, you are in <strong>Zone {selectedZone}</strong>. The delivery fee will be{" "}
-              <strong>${getZoneFee(selectedZone)}</strong>.
+              Based on your location, you are{" "}
+              {exactDistance !== null ? `${exactDistance.toFixed(1)}km` : `in Zone ${selectedZone}`} from the city
+              center. The delivery fee will be <strong>${getZoneFee(selectedZone)}</strong>.
+              {exactDistance !== null && exactDistance > 10 && (
+                <span className="block mt-1 text-xs">
+                  (Base fee: $5 + ${(exactFee! - 5).toFixed(2)} for {Math.ceil(exactDistance - 10)} additional km)
+                </span>
+              )}
             </p>
             {!zoneConfirmed && (
               <div onClick={(e) => e.stopPropagation()}>
@@ -389,7 +438,7 @@ export default function DeliveryZoneMap({ onZoneChange, initialAddress = {}, for
                   onClick={confirmZone}
                   className="w-full bg-yellow-600 text-white py-2 rounded-md hover:bg-yellow-700 transition"
                 >
-                  Confirm Zone {selectedZone}
+                  Confirm Delivery Fee: ${getZoneFee(selectedZone)}
                 </button>
               </div>
             )}
