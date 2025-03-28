@@ -26,6 +26,16 @@ export const getCart = async (): Promise<CartItem[]> => {
     // If unauthorized, return empty array
     if (error.response?.status === 401) {
       console.warn("Unauthorized when fetching cart, returning empty array")
+
+      // Check if this is due to token expiration
+      if (typeof window !== "undefined") {
+        const token = localStorage.getItem("token")
+        if (token) {
+          console.warn("Token exists but unauthorized - possible expiration")
+          // The axios interceptor will handle the redirect
+        }
+      }
+
       return []
     }
 
@@ -46,6 +56,15 @@ export const updateCart = async (items: CartItem[]): Promise<void> => {
     // If unauthorized, log specific message
     if (error.response?.status === 401) {
       console.warn("Unauthorized when updating cart, user may need to log in again")
+
+      // Check if this is due to token expiration
+      if (typeof window !== "undefined") {
+        const token = localStorage.getItem("token")
+        if (token) {
+          console.warn("Token exists but unauthorized - possible expiration")
+          // The axios interceptor will handle the redirect
+        }
+      }
     } else {
       console.error("Cart update error:", error)
     }
@@ -64,6 +83,15 @@ export const clearCart = async (): Promise<void> => {
     // If unauthorized, log specific message
     if (error.response?.status === 401) {
       console.warn("Unauthorized when clearing cart, user may need to log in again")
+
+      // Check if this is due to token expiration
+      if (typeof window !== "undefined") {
+        const token = localStorage.getItem("token")
+        if (token) {
+          console.warn("Token exists but unauthorized - possible expiration")
+          // The axios interceptor will handle the redirect
+        }
+      }
     } else {
       console.error("Clear cart error:", error)
     }

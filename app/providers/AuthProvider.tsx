@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useEffect, useState, type ReactNode } from "react"
+import { createContext, useEffect, useState, useRef, type ReactNode } from "react"
 import type { User } from "../Types"
 import {
   getUserProfile,
@@ -9,6 +9,7 @@ import {
   deleteAccount as apiDeleteAccount,
 } from "../lib/api/Auth"
 import axios from "../lib/axios"
+import { useRouter } from "next/navigation"
 
 interface AuthContextType {
   user: User | null
@@ -33,6 +34,13 @@ export const AuthContext = createContext<AuthContextType>({
 export default function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [lastActivity, setLastActivity] = useState<number>(Date.now())
+  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const tokenExpiryTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const router = useRouter()
+
+  // Session timeout in milliseconds (30 minutes)
+  const SESSION_TIMEOUT = 30 * 60 * 1000
 
   useEffect(() => {
     const token = localStorage.getItem("token")
@@ -41,8 +49,70 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       // Set the Authorization header for all future requests
       axios.defaults.headers.common["Authorization"] = `Bearer ${token}`
       fetchUserProfile()
+
+      // Start the inactivity timer
+      startInactivityTimer()
+
+      // Check token expiration
+      checkTokenExpiration(token)
     } else {
       setIsLoading(false)
+    }
+
+    // Set up event listeners for user activity
+    const activityEvents = ["mousedown", "mousemove", "keypress", "scroll", "touchstart", "touchmove", "touchend"]
+
+    const resetInactivityTimer = () => {
+      setLastActivity(Date.now())
+      startInactivityTimer()
+    }
+
+    activityEvents.forEach((event) => {
+      window.addEventListener(event, resetInactivityTimer)
+    })
+
+    // Handle page visibility changes (when user switches apps or tabs)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        // User has returned to the app/tab
+        const token = localStorage.getItem("token")
+        if (token) {
+          // Check if the session should still be valid
+          const currentTime = Date.now()
+          const timeSinceLastActivity = currentTime - lastActivity
+
+          if (timeSinceLastActivity > SESSION_TIMEOUT) {
+            // Session should have expired while away
+            console.log("Session expired while away")
+            logout()
+          } else {
+            // Session still valid, restart the timer
+            startInactivityTimer()
+            checkTokenExpiration(token)
+          }
+        }
+      }
+    }
+
+    // Add visibility change listener
+    document.addEventListener("visibilitychange", handleVisibilityChange)
+
+    // Clean up event listeners
+    return () => {
+      activityEvents.forEach((event) => {
+        window.removeEventListener(event, resetInactivityTimer)
+      })
+
+      document.removeEventListener("visibilitychange", handleVisibilityChange)
+
+      // Clear timers
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current)
+      }
+
+      if (tokenExpiryTimerRef.current) {
+        clearTimeout(tokenExpiryTimerRef.current)
+      }
     }
   }, [])
 
@@ -50,15 +120,75 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const userData = await getUserProfile()
       setUser(userData)
+      return userData
     } catch (error: any) {
       console.error("Failed to fetch user profile:", error)
-  
+
       // If token is expired or invalid, force logout
       if (error.response?.status === 401) {
         await logout() // Ensure user state updates immediately
+        router.push("/login?session=expired")
       }
+      throw error
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const startInactivityTimer = () => {
+    // Clear any existing timer
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current)
+    }
+
+    // Set a new timer
+    inactivityTimerRef.current = setTimeout(async () => {
+      console.log("Session expired due to inactivity")
+      await logout()
+      router.push("/login?session=expired")
+    }, SESSION_TIMEOUT)
+  }
+
+  const checkTokenExpiration = (token: string) => {
+    try {
+      // For JWT tokens, you can decode and check expiration
+      // This is a simple implementation - adjust based on your token structure
+      const tokenParts = token.split(".")
+      if (tokenParts.length !== 3) {
+        // Not a valid JWT token
+        return
+      }
+
+      const payload = JSON.parse(atob(tokenParts[1]))
+
+      if (payload.exp) {
+        // exp is in seconds, convert to milliseconds
+        const expiryTime = payload.exp * 1000
+        const currentTime = Date.now()
+
+        if (expiryTime <= currentTime) {
+          // Token already expired
+          console.log("Token expired")
+          logout()
+          router.push("/login?session=expired")
+          return
+        }
+
+        // Set timer to logout when token expires
+        const timeToExpiry = expiryTime - currentTime
+
+        if (tokenExpiryTimerRef.current) {
+          clearTimeout(tokenExpiryTimerRef.current)
+        }
+
+        tokenExpiryTimerRef.current = setTimeout(() => {
+          console.log("Token expired")
+          logout()
+          router.push("/login?session=expired")
+        }, timeToExpiry)
+      }
+    } catch (error) {
+      console.error("Error checking token expiration:", error)
     }
   }
 
@@ -69,10 +199,20 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     // Set the Authorization header for all future requests
     axios.defaults.headers.common["Authorization"] = `Bearer ${token}`
 
+    // Reset activity timestamp and start inactivity timer
+    setLastActivity(Date.now())
+    startInactivityTimer()
+
+    // Check token expiration
+    checkTokenExpiration(token)
+
     if (userData) {
       setUser(userData)
+      router.push("/products") // Redirect to products page after login
     } else {
-      fetchUserProfile()
+      fetchUserProfile().then(() => {
+        router.push("/products") // Redirect to products page after profile is fetched
+      })
     }
   }
 
@@ -89,6 +229,16 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null)
       setIsLoading(false) // Ensure app re-renders properly
 
+      // Clear timers
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current)
+        inactivityTimerRef.current = null
+      }
+
+      if (tokenExpiryTimerRef.current) {
+        clearTimeout(tokenExpiryTimerRef.current)
+        tokenExpiryTimerRef.current = null
+      }
     }
   }
 

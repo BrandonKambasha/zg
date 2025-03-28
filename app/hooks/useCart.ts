@@ -6,6 +6,7 @@ import { useEffect, useState } from "react"
 import { useAuth } from "./useAuth"
 import type { Product, Hamper } from "../Types"
 import { getCart, updateCart, clearCart as clearServerCart } from "../lib/api/cart"
+import toast from "react-hot-toast"
 
 // Updated server cart item interface to support both products and hampers
 interface ServerCartItem {
@@ -225,6 +226,8 @@ export const useCartStore = create<CartStore>()(
           await updateCart(serverItems)
         } catch (error) {
           console.error("Failed to sync cart with server:", error)
+          // Don't throw the error, just log it
+          return Promise.resolve() // Resolve anyway to prevent errors from propagating
         } finally {
           get().setIsLoading(false)
         }
@@ -286,6 +289,8 @@ export const useCartStore = create<CartStore>()(
           }
         } catch (error) {
           console.error("Failed to load cart from server:", error)
+          // Don't throw the error, just log it
+          return Promise.resolve() // Resolve anyway to prevent errors from propagating
         } finally {
           get().setIsLoading(false)
         }
@@ -320,19 +325,52 @@ export const useCartStore = create<CartStore>()(
   ),
 )
 
-// Custom hook to handle cart logic including synchronization
+// Add automatic error recovery to useCart
 export function useCart() {
   const cartStore = useCartStore()
   const { user, isAuthenticated } = useAuth()
   const [mounted, setMounted] = useState(false)
   const [syncTimeout, setSyncTimeout] = useState<NodeJS.Timeout | null>(null)
+  const [hasAttemptedRecovery, setHasAttemptedRecovery] = useState(false)
 
   // Handle hydration mismatch
   useEffect(() => {
     setMounted(true)
+
     // Calculate total price on initial load
     cartStore.calculateTotalPrice()
+
+    // Check if cart is corrupted and reset if needed
+    try {
+      const cartData = localStorage.getItem("cart-storage")
+      if (cartData) {
+        const parsedData = JSON.parse(cartData)
+        // If the cart data is invalid or corrupted, reset it
+        if (!parsedData || !parsedData.state || !Array.isArray(parsedData.state.items)) {
+          console.warn("Cart data appears to be corrupted, resetting")
+          localStorage.removeItem("cart-storage")
+          cartStore.clearCart()
+        }
+      }
+    } catch (e) {
+      console.error("Error parsing cart data, resetting:", e)
+      localStorage.removeItem("cart-storage")
+      cartStore.clearCart()
+    }
   }, [])
+
+  // Add automatic recovery if cart operations fail
+  useEffect(() => {
+    if (!mounted || hasAttemptedRecovery) return
+
+    // If the cart is empty but the user is logged in, try to load from server
+    if (isAuthenticated && user && cartStore.items.length === 0) {
+      setHasAttemptedRecovery(true)
+      cartStore.loadFromServer().catch((err) => {
+        console.warn("Automatic cart recovery failed, but continuing:", err)
+      })
+    }
+  }, [isAuthenticated, user, cartStore.items.length, mounted, hasAttemptedRecovery])
 
   // Set userId when auth state changes
   useEffect(() => {
@@ -355,11 +393,16 @@ export function useCart() {
       clearTimeout(syncTimeout)
     }
 
+    // Only sync if user is authenticated and there are items
     if (isAuthenticated && user && cartStore.items.length > 0) {
       // Debounce the sync to avoid too many requests
       const timeoutId = setTimeout(() => {
-        cartStore.syncWithServer()
-      }, 1000) // Increased debounce time to reduce chances of race conditions
+        cartStore.syncWithServer().catch((err) => {
+          // Don't throw errors from sync failures
+          console.warn("Cart sync failed, but continuing:", err)
+          toast.error("Failed to sync cart with server. Please try again.")
+        })
+      }, 1000)
 
       setSyncTimeout(timeoutId)
     }
@@ -369,16 +412,17 @@ export function useCart() {
     }
   }, [isAuthenticated, user, cartStore.items, mounted])
 
-  // Load from server when user logs in - only once
+  // Load from server when user logs in
   useEffect(() => {
     if (!mounted) return
 
-    let hasLoaded = false
-
-    if (isAuthenticated && user && !hasLoaded) {
-      hasLoaded = true
-      // When user logs in, load their cart from server
-      cartStore.loadFromServer()
+    // When user logs in, load their cart from server
+    if (isAuthenticated && user) {
+      cartStore.loadFromServer().catch((err) => {
+        // Don't throw errors from load failures
+        console.warn("Cart load failed, but continuing:", err)
+        toast.error("Failed to load your cart. Please refresh the page.")
+      })
     }
   }, [isAuthenticated, user, mounted])
 

@@ -25,6 +25,12 @@ export default function WishlistPage() {
   }, [isAuthenticated, authLoading, router])
 
   const handleAddToCart = (item: any) => {
+    // Skip if wishlistable is null
+    if (!item.wishlistable) {
+      toast.error("This product is no longer available")
+      return
+    }
+
     setIsAddingToCart((prev) => ({ ...prev, [item.id]: true }))
 
     // Simulate a small delay for better UX
@@ -87,14 +93,20 @@ export default function WishlistPage() {
           {items.map((item) => (
             <div key={item.id} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
               <div className="relative aspect-square">
-                <Link href={`/products/${item.wishlistable.id}`}>
-                  <Image
-                    src={getFullImageUrl(item.wishlistable.image_url) || "/placeholder.svg"}
-                    alt={item.wishlistable.name}
-                    fill
-                    className="object-cover"
-                  />
-                </Link>
+                {item.wishlistable ? (
+                  <Link href={`/products/${item.wishlistable.id}`}>
+                    <Image
+                      src={getFullImageUrl(item.wishlistable.image_url) || "/placeholder.svg"}
+                      alt={item.wishlistable.name}
+                      fill
+                      className="object-cover"
+                    />
+                  </Link>
+                ) : (
+                  <div className="flex items-center justify-center h-full bg-gray-100">
+                    <p className="text-gray-500 text-sm p-4 text-center">Product no longer available</p>
+                  </div>
+                )}
                 <button
                   onClick={() => removeFromWishlist(item.id)}
                   className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-md hover:bg-red-50 transition-colors"
@@ -104,31 +116,48 @@ export default function WishlistPage() {
               </div>
 
               <div className="p-4">
-                <Link href={`/products/${item.wishlistable.id}`}>
-                  <h3 className="font-medium text-gray-800 mb-1 hover:text-teal-600 transition-colors">
-                    {item.wishlistable.name}
-                  </h3>
-                </Link>
+                {item.wishlistable ? (
+                  <>
+                    <Link href={`/products/${item.wishlistable.id}`}>
+                      <h3 className="font-medium text-gray-800 mb-1 hover:text-teal-600 transition-colors">
+                        {item.wishlistable.name}
+                      </h3>
+                    </Link>
 
-                <p className="text-sm text-gray-500 line-clamp-2 mb-3">{item.wishlistable.description}</p>
+                    <p className="text-sm text-gray-500 line-clamp-2 mb-3">{item.wishlistable.description}</p>
 
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-teal-600">${item.wishlistable.price}</span>
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-teal-600">${item.wishlistable.price}</span>
 
-                  <button
-                    onClick={() => handleAddToCart(item)}
-                    disabled={isAddingToCart[item.id] || item.wishlistable.stock_quantity === 0}
-                    className={`p-2 rounded-full transition-all transform hover:scale-110 ${
-                      item.wishlistable.stock_quantity === 0
-                        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                        : isAddingToCart[item.id]
-                          ? "bg-teal-600 text-white"
-                          : "bg-teal-100 text-teal-600 hover:bg-teal-600 hover:text-white"
-                    }`}
-                  >
-                    <ShoppingCart className="h-4 w-4" />
-                  </button>
-                </div>
+                      <button
+                        onClick={() => handleAddToCart(item)}
+                        disabled={isAddingToCart[item.id] || item.wishlistable.stock_quantity === 0}
+                        className={`p-2 rounded-full transition-all transform hover:scale-110 ${
+                          item.wishlistable.stock_quantity === 0
+                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                            : isAddingToCart[item.id]
+                              ? "bg-teal-600 text-white"
+                              : "bg-teal-100 text-teal-600 hover:bg-teal-600 hover:text-white"
+                        }`}
+                      >
+                        <ShoppingCart className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div>
+                    <h3 className="font-medium text-gray-800 mb-1">Product Unavailable</h3>
+                    <p className="text-sm text-gray-500 mb-3">
+                      This product has been removed or is no longer available.
+                    </p>
+                    <button
+                      onClick={() => removeFromWishlist(item.id)}
+                      className="text-sm text-red-600 hover:text-red-700"
+                    >
+                      Remove from wishlist
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           ))}

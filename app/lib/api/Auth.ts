@@ -37,7 +37,18 @@ export const logout = async () => {
     const response = await axios.post("/logout")
     return response.data
   } catch (error: any) {
+    // Even if the API call fails, ensure token is cleared
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("token")
+      delete axios.defaults.headers.common["Authorization"]
+    }
     throw new Error(error.response?.data?.message || "Logout failed")
+  } finally {
+    // Ensure token is cleared regardless of success or failure
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("token")
+      delete axios.defaults.headers.common["Authorization"]
+    }
   }
 }
 
@@ -46,6 +57,14 @@ export const getUserProfile = async (): Promise<User> => {
     const response = await axios.get("/user")
     return response.data
   } catch (error: any) {
+    // Check if token is expired or invalid
+    if (error.response?.status === 401) {
+      // Clear token from localStorage
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("token")
+        delete axios.defaults.headers.common["Authorization"]
+      }
+    }
     throw new Error(error.response?.data?.message || "Failed to get user profile")
   }
 }
