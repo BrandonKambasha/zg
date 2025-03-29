@@ -1,24 +1,15 @@
 "use client"
 
 import type React from "react"
-
 import { useEffect, useRef, useState } from "react"
-import dynamic from "next/dynamic"
 import { Search, MapPin, CheckCircle, AlertCircle, Info, ArrowRight } from "lucide-react"
-import type { Map as LeafletMap } from "leaflet"
+import { GoogleMap, useJsApiLoader, Marker, Circle } from "@react-google-maps/api"
 
-// Fix the Harare CBD coordinates type
-const HARARE_CBD: [number, number] = [-17.831773, 31.045686]
-
-// Dynamically import the Map component to avoid SSR issues
-const Map = dynamic(() => import("./Map"), {
-  ssr: false,
-  loading: () => (
-    <div className="h-[400px] w-full flex items-center justify-center bg-gray-100 rounded-md">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
-    </div>
-  ),
-})
+// Fix the Harare CBD coordinates
+const HARARE_CBD = {
+  lat: -17.831773,
+  lng: 31.045686,
+}
 
 // Base fee configuration
 const BASE_ZONE_RADIUS = 10000 // 10km base zone
@@ -43,6 +34,20 @@ const calculateDeliveryFee = (distanceInMeters: number) => {
   }
 }
 
+// Calculate distance between two points using the Haversine formula
+const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+  const R = 6371e3 // Earth's radius in meters
+  const φ1 = (lat1 * Math.PI) / 180
+  const φ2 = (lat2 * Math.PI) / 180
+  const Δφ = ((lat2 - lat1) * Math.PI) / 180
+  const Δλ = ((lon2 - lon1) * Math.PI) / 180
+
+  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+
+  return R * c // Distance in meters
+}
+
 interface DeliveryZoneMapProps {
   onZoneChange: (zone: number | null, distance: number | null, fee: number | null) => void
   initialAddress?: {
@@ -55,13 +60,22 @@ interface DeliveryZoneMapProps {
 }
 
 interface AddressSuggestion {
-  place_id: number
-  display_name: string
-  lat: string
-  lon: string
+  place_id: string
+  description: string
+  structured_formatting: {
+    main_text: string
+    secondary_text: string
+  }
 }
 
 export default function DeliveryZoneMap({ onZoneChange, initialAddress = {}, formId }: DeliveryZoneMapProps) {
+  // Load Google Maps API
+  const { isLoaded } = useJsApiLoader({
+    id: "google-map-script",
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
+    libraries: ["places"],
+  })
+
   // State for exact distance and fee
   const [exactDistance, setExactDistance] = useState<number | null>(null)
   const [exactFee, setExactFee] = useState<number | null>(null)
@@ -73,20 +87,60 @@ export default function DeliveryZoneMap({ onZoneChange, initialAddress = {}, for
   const [isSearching, setIsSearching] = useState(false)
 
   // Map state
-  const [addressCoords, setAddressCoords] = useState<[number, number] | null>(null)
+  const [addressCoords, setAddressCoords] = useState<{ lat: number; lng: number } | null>(null)
   const [selectedZone, setSelectedZone] = useState<number | null>(null)
   const [zoneConfirmed, setZoneConfirmed] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const mapRef = useRef<LeafletMap | null>(null)
   const [hasSearched, setHasSearched] = useState(false)
 
-  // Debounce timer for address input
+  // Refs
+  const mapRef = useRef<google.maps.Map | null>(null)
+  const autocompleteService = useRef<google.maps.places.AutocompleteService | null>(null)
+  const placesService = useRef<google.maps.places.PlacesService | null>(null)
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Initialize Google services when API is loaded
+  useEffect(() => {
+    if (isLoaded && window.google) {
+      autocompleteService.current = new window.google.maps.places.AutocompleteService()
+    }
+  }, [isLoaded])
+
+  // Initialize Places Service when map is loaded
+  const onMapLoad = (map: google.maps.Map) => {
+    mapRef.current = map
+    if (window.google) {
+      placesService.current = new window.google.maps.places.PlacesService(map)
+    }
+  }
 
   // Initialize with any provided address
   useEffect(() => {
     if (initialAddress) {
-      const addressParts = [initialAddress.location].filter(Boolean)
+      // Format the address in a more logical order with proper separators
+      const addressParts = []
+
+      // Add house number and street together
+      if (initialAddress.house_number && initialAddress.street) {
+        addressParts.push(`${initialAddress.house_number} ${initialAddress.street}`)
+      } else if (initialAddress.house_number) {
+        addressParts.push(initialAddress.house_number)
+      } else if (initialAddress.street) {
+        addressParts.push(initialAddress.street)
+      }
+
+      // Add location/suburb
+      if (initialAddress.location) {
+        addressParts.push(initialAddress.location)
+      }
+
+      // Add city
+      if (initialAddress.city) {
+        addressParts.push(initialAddress.city)
+      }
+
+      // Add country
+      addressParts.push("Zimbabwe")
 
       if (addressParts.length > 0) {
         setAddressInput(addressParts.join(", "))
@@ -114,7 +168,7 @@ export default function DeliveryZoneMap({ onZoneChange, initialAddress = {}, for
     }
 
     // Set new timer for debounce
-    if (value.length > 3) {
+    if (value.length > 3 && isLoaded && autocompleteService.current) {
       setIsSearching(true)
       debounceTimerRef.current = setTimeout(() => {
         fetchAddressSuggestions(value)
@@ -126,121 +180,94 @@ export default function DeliveryZoneMap({ onZoneChange, initialAddress = {}, for
     }
   }
 
-  // Fetch address suggestions from Nominatim
-  const fetchAddressSuggestions = async (query: string) => {
-    try {
-      setIsSearching(true)
-      const encodedQuery = encodeURIComponent(`${query}, Zimbabwe`)
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodedQuery}&limit=5&addressdetails=1`,
-        {
-          headers: {
-            "Accept-Language": "en",
-            "User-Agent": "ZimbabweDeliveryApp",
-          },
-        },
-      )
+  // Fetch address suggestions from Google Places Autocomplete
+  const fetchAddressSuggestions = (query: string) => {
+    if (!autocompleteService.current) return
 
-      if (!response.ok) {
-        throw new Error(`Geocoding service error: ${response.status}`)
-      }
+    autocompleteService.current.getPlacePredictions(
+      {
+        input: query,
+        componentRestrictions: { country: "zw" }, // Restrict to Zimbabwe
+        types: ["address"], // Focus on addresses
+      },
+      (predictions, status) => {
+        setIsSearching(false)
+        setHasSearched(true)
 
-      const data = await response.json()
-      setSuggestions(data)
-      setShowSuggestions(data.length > 0)
-      setHasSearched(true)
+        if (status !== window.google.maps.places.PlacesServiceStatus.OK || !predictions) {
+          setSuggestions([])
+          setShowSuggestions(false)
+          setError("No locations found. Try entering a more specific address.")
+          return
+        }
 
-      if (data.length === 0) {
-        setError("No locations found. Try a different neighborhood name.")
-      }
-    } catch (err) {
-      console.error("Error fetching address suggestions:", err)
-      setError("Failed to fetch address suggestions. Please try again.")
-    } finally {
-      setIsSearching(false)
-    }
+        setSuggestions(predictions as AddressSuggestion[])
+        setShowSuggestions(predictions.length > 0)
+
+        if (predictions.length === 0) {
+          setError("No locations found. Try entering a more specific address.")
+        }
+      },
+    )
   }
 
   // Handle suggestion selection
   const handleSelectSuggestion = (suggestion: AddressSuggestion) => {
-    setAddressInput(suggestion.display_name)
+    setAddressInput(suggestion.description)
     setShowSuggestions(false)
 
-    const coords: [number, number] = [Number.parseFloat(suggestion.lat), Number.parseFloat(suggestion.lon)]
+    if (!placesService.current) return
 
-    setAddressCoords(coords)
-    determineZone(coords)
+    placesService.current.getDetails(
+      {
+        placeId: suggestion.place_id,
+        fields: ["geometry"],
+      },
+      (place, status) => {
+        if (
+          status === window.google.maps.places.PlacesServiceStatus.OK &&
+          place &&
+          place.geometry &&
+          place.geometry.location
+        ) {
+          const coords = {
+            lat: place.geometry.location.lat(),
+            lng: place.geometry.location.lng(),
+          }
+          setAddressCoords(coords)
+          determineZone(coords)
+        } else {
+          setError("Could not find details for this location. Please try another address.")
+        }
+      },
+    )
   }
 
   // Determine which zone the coordinates fall into and calculate exact fee
-  const determineZone = async (coords: [number, number]) => {
-    try {
-      const L = await import("leaflet")
-      const distanceFromCBD = L.latLng(coords).distanceTo(L.latLng(HARARE_CBD))
+  const determineZone = (coords: { lat: number; lng: number }) => {
+    // Calculate distance from CBD
+    const distanceFromCBD = calculateDistance(coords.lat, coords.lng, HARARE_CBD.lat, HARARE_CBD.lng)
 
-      // Store the exact distance for fee calculation
-      const exactDistanceKm = distanceFromCBD / 1000
-      const deliveryFee = calculateDeliveryFee(distanceFromCBD)
+    // Store the exact distance for fee calculation
+    const exactDistanceKm = distanceFromCBD / 1000
+    const deliveryFee = calculateDeliveryFee(distanceFromCBD)
 
-      // For UI purposes, determine which visual zone the point falls into
-      let visualZone = null
-      for (let i = ZONES.length - 1; i >= 0; i--) {
-        if (distanceFromCBD <= ZONES[i].radius) {
-          visualZone = ZONES[i].id
-        }
-      }
-
-      // Set a custom zone object that includes both the visual zone and the exact fee
-      setSelectedZone(visualZone)
-
-      // Store the exact distance and fee
-      setExactDistance(exactDistanceKm)
-      setExactFee(deliveryFee)
-
-      setZoneConfirmed(false)
-    } catch (err) {
-      console.error("Error determining zone:", err)
-      setError("Failed to determine delivery zone. Please try again.")
-    }
-  }
-
-  // Handle manual zone selection
-  const handleManualZoneSelect = (zoneId: number, e: React.MouseEvent) => {
-    // Prevent form submission
-    e.preventDefault()
-    e.stopPropagation()
-
-    // Prevent any form submission that might be triggered
-    if (formId) {
-      const form = document.getElementById(formId) as HTMLFormElement
-      if (form) {
-        // Temporarily disable form submission
-        const originalOnSubmit = form.onsubmit
-        form.onsubmit = (e) => {
-          e.preventDefault()
-          return false
-        }
-
-        // Restore original handler after a delay
-        setTimeout(() => {
-          form.onsubmit = originalOnSubmit
-        }, 100)
+    // For UI purposes, determine which visual zone the point falls into
+    let visualZone = null
+    for (let i = ZONES.length - 1; i >= 0; i--) {
+      if (distanceFromCBD <= ZONES[i].radius) {
+        visualZone = ZONES[i].id
       }
     }
 
-    // For manual selection, set the zone and use the predefined fee
-    setSelectedZone(zoneId)
+    // Set a custom zone object that includes both the visual zone and the exact fee
+    setSelectedZone(visualZone)
 
-    // Calculate distance and fee based on the selected zone
-    const zoneRadius = ZONES.find((z) => z.id === zoneId)?.radius || 10000
-    const estimatedDistance = zoneRadius / 1000 / 2 // Midpoint of the zone in km
-    const zoneFee = ZONES.find((z) => z.id === zoneId)?.fee || 5
+    // Store the exact distance and fee
+    setExactDistance(exactDistanceKm)
+    setExactFee(deliveryFee)
 
-    setExactDistance(estimatedDistance)
-    setExactFee(zoneFee)
-
-    setZoneConfirmed(true) // Automatically confirm when manually selected
-    onZoneChange(zoneId, estimatedDistance, zoneFee) // Immediately notify parent component
+    setZoneConfirmed(false)
   }
 
   // Confirm selected zone
@@ -291,8 +318,52 @@ export default function DeliveryZoneMap({ onZoneChange, initialAddress = {}, for
     if (addressInput.length > 3) {
       fetchAddressSuggestions(addressInput)
     } else {
-      setError("Please enter a neighborhood or area name")
+      setError("Please enter your complete address")
     }
+  }
+
+  // Handle map click for manual pin placement
+  const handleMapClick = (e: google.maps.MapMouseEvent) => {
+    if (e.latLng) {
+      const coords = {
+        lat: e.latLng.lat(),
+        lng: e.latLng.lng(),
+      }
+      setAddressCoords(coords)
+      determineZone(coords)
+
+      // Try to reverse geocode to get an address
+      if (window.google) {
+        const geocoder = new window.google.maps.Geocoder()
+        geocoder.geocode({ location: coords }, (results, status) => {
+          if (status === "OK" && results && results[0]) {
+            setAddressInput(results[0].formatted_address)
+          }
+        })
+      }
+    }
+  }
+
+  // Map container styles
+  const mapContainerStyle = {
+    width: "100%",
+    height: "400px",
+  }
+
+  // Map options
+  const mapOptions = {
+    disableDefaultUI: true,
+    zoomControl: true,
+    streetViewControl: false,
+    mapTypeControl: false,
+    fullscreenControl: false,
+    styles: [
+      {
+        featureType: "poi",
+        elementType: "labels",
+        stylers: [{ visibility: "off" }],
+      },
+    ],
   }
 
   return (
@@ -325,11 +396,12 @@ export default function DeliveryZoneMap({ onZoneChange, initialAddress = {}, for
             <p className="text-sm text-blue-700 font-medium">Follow these steps to determine your delivery zone:</p>
           </div>
           <ol className="ml-7 text-sm text-blue-700 list-decimal space-y-1">
-            <li>Enter your neighborhood name (e.g., "Avondale", "Borrowdale")</li>
+            <li>Enter your complete address including house number, street, and neighborhood</li>
             <li>
               Click the <strong>Search</strong> button
             </li>
             <li>Select your location from the dropdown list</li>
+            <li>You can also click directly on the map to place a pin at your exact location</li>
             <li>Confirm your delivery zone</li>
           </ol>
           <p className="text-sm text-blue-700 mt-2 italic">You must complete all steps to proceed with checkout.</p>
@@ -341,7 +413,7 @@ export default function DeliveryZoneMap({ onZoneChange, initialAddress = {}, for
             <div className="relative flex-1">
               <input
                 type="text"
-                placeholder="Enter your neighborhood (e.g., Avondale, Borrowdale)"
+                placeholder="Enter your complete address"
                 value={addressInput}
                 onChange={handleAddressChange}
                 className="w-full p-2 pl-9 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
@@ -386,7 +458,10 @@ export default function DeliveryZoneMap({ onZoneChange, initialAddress = {}, for
                     onMouseDown={() => handleSelectSuggestion(suggestion)}
                   >
                     <MapPin className="h-4 w-4 mt-0.5 mr-2 flex-shrink-0 text-gray-500" />
-                    <span className="text-sm">{suggestion.display_name}</span>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium">{suggestion.structured_formatting.main_text}</span>
+                      <span className="text-xs text-gray-500">{suggestion.structured_formatting.secondary_text}</span>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -403,14 +478,58 @@ export default function DeliveryZoneMap({ onZoneChange, initialAddress = {}, for
 
         {/* Map Container */}
         <div className="h-[400px] w-full rounded-md overflow-hidden border border-gray-200">
-          <Map
-            center={HARARE_CBD}
-            zones={ZONES}
-            addressCoords={addressCoords}
-            selectedZone={selectedZone}
-            mapRef={mapRef}
-            modernStyle={true}
-          />
+          {isLoaded ? (
+            <GoogleMap
+              mapContainerStyle={mapContainerStyle}
+              center={addressCoords || HARARE_CBD}
+              zoom={addressCoords ? 15 : 12}
+              options={mapOptions}
+              onLoad={onMapLoad}
+              onClick={handleMapClick}
+            >
+              {/* Zone circles */}
+              {ZONES.map((zone) => (
+                <Circle
+                  key={zone.id}
+                  center={HARARE_CBD}
+                  radius={zone.radius}
+                  options={{
+                    strokeColor: zone.color,
+                    strokeOpacity: 0.8,
+                    strokeWeight: 1,
+                    fillColor: zone.fillColor,
+                    fillOpacity: 0.2,
+                    clickable: false,
+                    zIndex: 1,
+                  }}
+                />
+              ))}
+
+              {/* Highlight selected zone */}
+              {selectedZone !== null && (
+                <Circle
+                  center={HARARE_CBD}
+                  radius={ZONES.find((z) => z.id === selectedZone)?.radius || 10000}
+                  options={{
+                    strokeColor: ZONES.find((z) => z.id === selectedZone)?.color || "#10b981",
+                    strokeOpacity: 0.8,
+                    strokeWeight: 2,
+                    fillColor: ZONES.find((z) => z.id === selectedZone)?.fillColor || "#10b98133",
+                    fillOpacity: 0.4,
+                    clickable: false,
+                    zIndex: 2,
+                  }}
+                />
+              )}
+
+              {/* Address marker */}
+              {addressCoords && <Marker position={addressCoords} animation={window.google.maps.Animation.DROP} />}
+            </GoogleMap>
+          ) : (
+            <div className="h-full w-full flex items-center justify-center bg-gray-100">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
+            </div>
+          )}
         </div>
 
         {/* Zone Information */}
@@ -444,30 +563,6 @@ export default function DeliveryZoneMap({ onZoneChange, initialAddress = {}, for
             )}
           </div>
         )}
-
-        {/* Manual Zone Selection */}
-        <div className="p-4 bg-gray-50 border border-gray-200 rounded-md">
-          <h3 className="font-medium text-gray-800 mb-2">Manual Zone Selection</h3>
-          <p className="text-sm text-gray-600 mb-3">
-            If automatic detection doesn't work, you can manually select your delivery zone:
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            {ZONES.map((zone) => (
-              <div key={zone.id} onClick={(e) => e.stopPropagation()}>
-                <button
-                  type="button"
-                  onClick={(e) => handleManualZoneSelect(zone.id, e)}
-                  className={`w-full py-2 px-3 rounded-md text-sm font-medium ${
-                    selectedZone === zone.id ? "bg-teal-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
-                >
-                  <span>Zone {zone.id}</span>
-                  <span className="ml-1 text-xs opacity-80">${zone.fee}</span>
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
 
         {/* Zone Legend */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
