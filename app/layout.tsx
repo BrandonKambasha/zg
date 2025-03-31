@@ -12,12 +12,14 @@ import { ChevronRight } from "lucide-react"
 import Script from "next/script"
 import SessionExpiredModal from "./components/SessionExpiredModal"
 import { GoogleTagManager } from "@next/third-parties/google"
+import StructuredData from "./components/StructuredData"
 
 const inter = Inter({ subsets: ["latin"], display: "swap" })
 
 export const metadata: Metadata = {
-  title: "Zimbabwe Groceries | Authentic Zimbabwean Food Delivered Worldwide",
-  description: "Shop authentic Zimbabwean groceries and have them delivered to your loved ones anywhere in the world.",
+  title: "ZimGroceries | Authentic Zimbabwean Food Delivered To Loved Ones Back Home",
+  description:
+    "Shop authentic Zimbabwean groceries and have them delivered to your loved ones back home. ZimGroceries is your trusted source for Zimbabwe groceries.",
 }
 
 export default function RootLayout({
@@ -35,8 +37,8 @@ export default function RootLayout({
           src={`https://www.google.com/recaptcha/api.js?render=${process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}`}
           strategy="afterInteractive"
         />
+        <StructuredData />
       </head>
-
       <body className={inter.className}>
         {/* Add SessionExpiredModal outside of AuthProvider to ensure it works even when logged out */}
         <SessionExpiredModal />
@@ -130,7 +132,7 @@ export default function RootLayout({
                         <li>
                           <a
                             href="/hampers"
-                            className="text-gray-300 hover:text-zimbabwe-yellow transition-colors flex items-center text-sm sm:text-base"
+                            className="text-gray-300 hover:text-zimbabwe-yellow transition-colors flex items-center text-sm:text-base"
                           >
                             <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                             Hampers
