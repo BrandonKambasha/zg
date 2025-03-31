@@ -557,7 +557,7 @@ export default function Header() {
                     onClick={() => setIsMenuOpen(false)}
                   >
                     <Home className="h-5 w-5 mr-3" />
-                    <span className="font-medium">Home</span>
+                    <span className="font-medium">Home </span>
                   </Link>
 
                   <div>
