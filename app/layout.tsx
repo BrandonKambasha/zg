@@ -11,6 +11,7 @@ import WishlistProvider from "./providers/WishlistProvider"
 import { ChevronRight } from "lucide-react"
 import Script from "next/script"
 import SessionExpiredModal from "./components/SessionExpiredModal"
+import { GoogleTagManager } from "@next/third-parties/google"
 
 const inter = Inter({ subsets: ["latin"], display: "swap" })
 
@@ -26,6 +27,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <GoogleTagManager gtmId="G-93D5E686RR" />
       <head>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
         {/* Add reCAPTCHA script here */}
@@ -34,6 +36,7 @@ export default function RootLayout({
           strategy="afterInteractive"
         />
       </head>
+
       <body className={inter.className}>
         {/* Add SessionExpiredModal outside of AuthProvider to ensure it works even when logged out */}
         <SessionExpiredModal />
