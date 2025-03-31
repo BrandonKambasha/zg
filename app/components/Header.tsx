@@ -204,6 +204,11 @@ export default function Header() {
     }
   }
 
+  // Toggle dropdown visibility for touch devices
+  const toggleDropdown = (groupTitle: string) => {
+    setActiveGroup(activeGroup === groupTitle ? null : groupTitle)
+  }
+
   // Get only the top 5 categories
   const topCategories = categories.slice(0, 5)
 
@@ -229,7 +234,7 @@ export default function Header() {
               </div>
             </Link>
 
-            {/* Desktop Navigation - Simplified with mega menu */}
+            {/* Desktop Navigation - Modified for touch devices */}
             <nav className="hidden lg:flex items-center space-x-1">
               {/* Home link */}
               <Link
@@ -242,26 +247,34 @@ export default function Header() {
 
               {/* Main navigation groups */}
               {navigationGroups.map((group) => (
-                <div
-                  key={group.title}
-                  className="relative group"
-                  onMouseEnter={() => setActiveGroup(group.title)}
-                  onMouseLeave={() => setActiveGroup(null)}
-                >
-                  <button className="flex items-center px-3 py-2 text-gray-700 hover:text-teal-600 hover:bg-gray-50 transition-colors rounded-md">
+                <div key={group.title} className="relative">
+                  <button
+                    className="flex items-center px-3 py-2 text-gray-700 hover:text-teal-600 hover:bg-gray-50 transition-colors rounded-md"
+                    onClick={() => toggleDropdown(group.title)}
+                    aria-expanded={activeGroup === group.title}
+                  >
                     <span className="flex items-center">
                       {React.cloneElement(group.icon as React.ReactElement)}
                       {group.title}
                     </span>
-                    <ChevronDown className="h-4 w-4 ml-1 transition-transform group-hover:rotate-180" />
+                    <ChevronDown
+                      className={`h-4 w-4 ml-1 transition-transform ${activeGroup === group.title ? "rotate-180" : ""}`}
+                    />
                   </button>
-                  <div className="absolute left-0 mt-1 w-64 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform group-hover:translate-y-0 translate-y-1 z-50">
+                  <div
+                    className={`absolute left-0 mt-1 w-64 transition-all duration-200 transform z-50 ${
+                      activeGroup === group.title
+                        ? "opacity-100 visible translate-y-0"
+                        : "opacity-0 invisible translate-y-1"
+                    }`}
+                  >
                     <div className="py-2 bg-white rounded-lg shadow-xl border border-gray-100">
                       {group.links.map((link) => (
                         <Link
                           key={link.href}
                           href={link.href}
                           className="block px-4 py-2 text-sm text-gray-700 hover:bg-teal-50 hover:text-teal-600"
+                          onClick={() => setActiveGroup(null)}
                         >
                           {link.label}
                         </Link>

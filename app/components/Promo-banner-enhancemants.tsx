@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Gift, Truck, X, ChevronLeft, ChevronRight } from "lucide-react"
+import { Gift, Truck, X, ChevronLeft, ChevronRight, Package } from "lucide-react"
 import Link from "next/link"
 import type React from "react"
 
@@ -24,12 +24,12 @@ export default function PromoBanner() {
   const promoMessages: PromoMessage[] = [
     {
       id: 1,
-      text: "Mother's Day 30 Mar! Special hampers to Mom ❤️",
-      icon: <Gift className="h-4 w-4 sm:h-5 sm:w-5" />,
-      bgColor: "bg-pink-600",
+      text: "Make it Personal! Build hampers for loved ones 🎁",
+      icon: <Package className="h-4 w-4 sm:h-5 sm:w-5" />,
+      bgColor: "bg-yellow-600",
       textColor: "text-white",
-      linkText: "Shop Hampers",
-      linkUrl: "/hampers",
+      linkText: "Start Building",
+      linkUrl: "/build-hamper",
     },
     {
       id: 2,
