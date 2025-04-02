@@ -382,7 +382,7 @@ export default function Header() {
               <CartIcon />
 
               {/* Add Reset App State Button */}
-              {/* <ResetAppStateButton /> */}
+              <ResetAppStateButton />
             </div>
 
             {/* Mobile Menu Button and Quick Actions */}
