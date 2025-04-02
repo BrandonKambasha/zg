@@ -40,7 +40,7 @@ export default function HowItWorksPage() {
       icon: UserPlus,
       color: "bg-blue-100",
       iconColor: "text-blue-600",
-      image: "/placeholder.svg?height=300&width=400",
+      image: "/images/create.jpg?height=300&width=400",
     },
     {
       id: 2,
@@ -49,7 +49,7 @@ export default function HowItWorksPage() {
       icon: ShoppingCart,
       color: "bg-green-100",
       iconColor: "text-green-600",
-      image: "/placeholder.svg?height=300&width=400",
+      image: "/images/cart.avif?height=300&width=400",
     },
     {
       id: 3,
@@ -58,7 +58,7 @@ export default function HowItWorksPage() {
       icon: CreditCard,
       color: "bg-purple-100",
       iconColor: "text-purple-600",
-      image: "/placeholder.svg?height=300&width=400",
+      image: "/images/checkout.jpg?height=300&width=400",
     },
     {
       id: 4,
@@ -67,7 +67,7 @@ export default function HowItWorksPage() {
       icon: Truck,
       color: "bg-teal-100",
       iconColor: "text-teal-600",
-      image: "/placeholder.svg?height=300&width=400",
+      image: "/images/truck.avif?height=300&width=400",
     },
   ]
 

@@ -193,7 +193,7 @@ export default function ShippingPage() {
                   viewport={{ once: true }}
                 >
                   <Image
-                    src="/placeholder.svg?height=400&width=600"
+                    src="/images/truck.avif?height=400&width=600"
                     alt="Delivery truck"
                     fill
                     className="object-cover"

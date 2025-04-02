@@ -365,7 +365,7 @@ export default function Home() {
           <div className="absolute right-0 bottom-0 w-1/2 h-full hidden lg:block">
             <div className="relative h-full w-full">
               <Image
-                src={"/images/zim.jpg"}
+                src={"/images/zim3.jpg"}
                 alt="Zimbabwean groceries"
                 fill
                 className="object-cover opacity-20 animate-float"
