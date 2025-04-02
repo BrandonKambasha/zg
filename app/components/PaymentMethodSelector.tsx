@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { CreditCard, Apple, Smartphone } from "lucide-react"
+import Image from "next/image";
 
 interface PaymentMethodSelectorProps {
   onSelect: (method: string) => void
@@ -36,7 +37,7 @@ export default function PaymentMethodSelector({ onSelect, isSubmitting }: Paymen
                 className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300"
               />
               <label htmlFor="credit_card" className="ml-2 flex items-center cursor-pointer">
-                <CreditCard className="h-5 w-5 mr-2 text-gray-600" />
+              <Image src="/images/visa.png" alt="Apple Pay" width={60} height={60} className="mr-2" />
                 <span>Credit/Debit Card</span>
               </label>
             </div>
@@ -58,8 +59,8 @@ export default function PaymentMethodSelector({ onSelect, isSubmitting }: Paymen
                 className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300"
               />
               <label htmlFor="apple_pay" className="ml-2 flex items-center cursor-pointer">
-                <Apple className="h-5 w-5 mr-2 text-gray-600" />
-                <span>Apple Pay</span>
+              <Image src="/images/apple.png" alt="Apple Pay" width={60} height={60} className="mr-2" />
+              <span>Apple Pay</span>
               </label>
             </div>
           </div>
@@ -80,7 +81,7 @@ export default function PaymentMethodSelector({ onSelect, isSubmitting }: Paymen
                 className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300"
               />
               <label htmlFor="google_pay" className="ml-2 flex items-center cursor-pointer">
-                <Smartphone className="h-5 w-5 mr-2 text-gray-600" />
+              <Image src="/images/google.webp" alt="Apple Pay" width={50} height={50} className="mr-2" />
                 <span>Google Pay</span>
               </label>
             </div>
@@ -92,8 +93,8 @@ export default function PaymentMethodSelector({ onSelect, isSubmitting }: Paymen
         <div className="bg-blue-50 p-4 rounded-md">
           <p className="text-sm">
             You'll be redirected to Stripe's secure payment page to complete your payment.
-            {paymentMethod === "apple_pay" && " Apple Pay will be available on the payment page."}
-            {paymentMethod === "google_pay" && " Google Pay will be available on the payment page."}
+            {paymentMethod === "apple_pay" &&   <>Apple Pay will be available on the payment page, <strong>if your device supports Apple Pay</strong></>}
+            {paymentMethod === "google_pay" && <> Google Pay will be available on the payment page, <strong>if your device supports Google pay</strong></>}
           </p>
         </div>
       </div>

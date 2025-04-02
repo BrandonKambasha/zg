@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
-import { ChevronDown, ChevronUp, MapPin } from "lucide-react"
+import { ChevronDown, ChevronUp, MapPin, ShieldCheck, Truck, Clock, CheckCircle2, AlertCircle } from "lucide-react"
 import { apiBaseUrl } from "../lib/axios"
 
 interface OrderSummaryProps {
@@ -15,6 +15,8 @@ interface OrderSummaryProps {
 
 export default function OrderSummary({ items, subtotal, deliveryZone, exactDistance, exactFee }: OrderSummaryProps) {
   const [isExpanded, setIsExpanded] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  const [animateTotal, setAnimateTotal] = useState(false)
 
   // Function to get full image URL with API prefix
   const getFullImageUrl = (url: string | undefined): string => {
@@ -70,9 +72,32 @@ export default function OrderSummary({ items, subtotal, deliveryZone, exactDista
     return "Standard delivery"
   }
 
+  // Get delivery time estimate based on zone
+  const getDeliveryEstimate = () => {
+    if (!deliveryZone) return "1-3 business days"
+
+    return deliveryZone <= 2 ? "1-2 business days" : "2-3 business days"
+  }
+
+  // Handle hydration mismatch
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Animate total when mounted
+  useEffect(() => {
+    if (mounted) {
+      setTimeout(() => {
+        setAnimateTotal(true)
+      }, 500)
+    }
+  }, [mounted])
+
+  if (!mounted) return null
+
   return (
-    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm sticky top-20">
-      <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
+      <div className="px-6 py-4 bg-gradient-to-r from-teal-500 to-teal-600 text-white">
         <h2 className="text-lg font-medium">Order Summary</h2>
       </div>
       <div className="p-6">
@@ -93,7 +118,7 @@ export default function OrderSummary({ items, subtotal, deliveryZone, exactDista
         <div className={`space-y-4 mb-6 ${isExpanded ? "block" : "hidden lg:block"}`}>
           {items.map((item) => (
             <div key={`${item.type}-${item.product.id}`} className="flex items-center">
-              <div className="h-12 w-12 relative flex-shrink-0">
+              <div className="h-16 w-16 relative flex-shrink-0">
                 <Image
                   src={getFullImageUrl(item.product.image_url) || "/placeholder.svg"}
                   alt={item.product.name}
@@ -107,47 +132,87 @@ export default function OrderSummary({ items, subtotal, deliveryZone, exactDista
                   {item.type === "hamper" && <span className="text-xs text-teal-600 ml-1">(Hamper)</span>}
                 </p>
                 <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
+                <p className="text-xs font-medium text-teal-600 mt-1">
+                  ${(item.product.price * item.quantity).toFixed(2)}
+                </p>
               </div>
-              <div className="text-sm font-medium">${(item.product.price * item.quantity).toFixed(2)}</div>
             </div>
           ))}
         </div>
 
-        {/* Delivery zone info if available */}
-        {(deliveryZone || exactDistance) && (
-          <div className="mb-4 p-3 bg-gray-50 rounded-md">
-            <div className="flex items-center text-sm font-medium text-gray-700 mb-1">
-              <MapPin className="h-4 w-4 mr-1.5 text-teal-600" />
-              {deliveryZone ? `Delivery Zone ${deliveryZone}` : "Delivery Fee"}
+        {/* Delivery Information Card */}
+        <div className="mb-5 p-4 bg-teal-50 rounded-lg border border-teal-100">
+          <div className="flex items-start">
+            <div className="mt-0.5">
+              <Truck className="h-5 w-5 text-teal-600" />
             </div>
-            <p className="text-xs text-gray-500">{getZoneDescription()}</p>
+            <div className="ml-3">
+              <h4 className="text-sm font-medium text-teal-800">Delivery Information</h4>
 
-            {/* Show fee breakdown for distances beyond 10km */}
-            {exactDistance !== null && exactDistance !== undefined && exactDistance > 10 && (
-              <p className="text-xs text-gray-500 mt-1">
-                Base fee ($5) + ${(shipping - 5).toFixed(2)} for {Math.ceil(exactDistance - 10)}km beyond 10km
-              </p>
-            )}
+              <div className="mt-2 space-y-2">
+                <div className="flex items-center text-xs text-teal-700">
+                  <MapPin className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />
+                  <span>{getZoneDescription()}</span>
+                </div>
+
+                <div className="flex items-center text-xs text-teal-700">
+                  <Clock className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />
+                  <span>Estimated delivery: {getDeliveryEstimate()}</span>
+                </div>
+
+                {exactDistance !== null && exactDistance !== undefined && exactDistance > 10 && (
+                  <div className="flex items-center text-xs text-teal-700">
+                    <AlertCircle className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />
+                    <span>
+                      Distance surcharge: ${(shipping - 5).toFixed(2)} for {Math.ceil(exactDistance - 10)}km beyond 10km
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-        )}
+        </div>
 
         {/* Order totals */}
-        <div className="space-y-2 pt-4 border-t border-gray-200">
+        <div className="space-y-3 pt-4 border-t border-gray-200">
           <div className="flex justify-between text-sm">
-            <span>Subtotal</span>
+            <span className="text-gray-600">Subtotal</span>
             <span>${subtotal.toFixed(2)}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span>
+            <span className="text-gray-600">
               Shipping
               {deliveryZone ? ` (Zone ${deliveryZone})` : ""}
               {exactDistance !== null && exactDistance !== undefined ? ` (${exactDistance.toFixed(1)}km)` : ""}
             </span>
             <span>${shipping.toFixed(2)}</span>
           </div>
-          <div className="flex justify-between font-medium text-base pt-2 border-t border-gray-200 mt-2">
+
+          <div
+            className={`flex justify-between font-medium text-base pt-3 border-t border-gray-200 mt-3 ${animateTotal ? "animate-pulse" : ""}`}
+          >
             <span>Total</span>
-            <span>${total.toFixed(2)}</span>
+            <span className="text-lg text-teal-700">${total.toFixed(2)}</span>
+          </div>
+        </div>
+
+        {/* Secure Checkout Badge */}
+        <div className="mt-6 pt-4 border-t border-gray-200">
+          <div className="flex items-center justify-center bg-gray-50 py-3 px-4 rounded-lg">
+            <ShieldCheck className="h-5 w-5 text-teal-600 mr-2" />
+            <span className="text-xs text-gray-700">Secure Checkout</span>
+          </div>
+        </div>
+
+        {/* Order Benefits */}
+        <div className="mt-5 space-y-3">
+          <div className="flex items-center">
+            <CheckCircle2 className="h-4 w-4 text-teal-600 mr-2 flex-shrink-0" />
+            <span className="text-xs text-gray-700">Free shipping on orders over $100</span>
+          </div>
+          <div className="flex items-center">
+            <CheckCircle2 className="h-4 w-4 text-teal-600 mr-2 flex-shrink-0" />
+            <span className="text-xs text-gray-700">Secure payment processing</span>
           </div>
         </div>
       </div>

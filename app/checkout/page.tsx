@@ -10,13 +10,17 @@ import toast from "react-hot-toast"
 import {
   ChevronLeft,
   CreditCard,
-  Truck,
   ShieldCheck,
-  AlertCircle,
   CheckCircle2,
   ArrowRight,
   Apple,
   Smartphone,
+  ShoppingBag,
+  Package,
+  CreditCardIcon as PaymentIcon,
+  CheckSquare,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react"
 import CheckoutForm from "../components/CheckoutForm"
 import PaymentMethodSelector from "../components/PaymentMethodSelector"
@@ -96,6 +100,7 @@ function CheckoutContent() {
   const [pageReady, setPageReady] = useState(false)
   const [redirecting, setRedirecting] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [showMobileOrderSummary, setShowMobileOrderSummary] = useState(false)
 
   // Function to ensure image URLs have the API prefix
   const getFullImageUrl = (url: string | undefined): string => {
@@ -337,19 +342,72 @@ function CheckoutContent() {
     return null
   }
 
+  // Get step icon based on current step
+  const getStepIcon = (stepNumber: number) => {
+    switch (stepNumber) {
+      case 1:
+        return <Package className="h-5 w-5" />
+      case 2:
+        return <PaymentIcon className="h-5 w-5" />
+      case 3:
+        return <CheckSquare className="h-5 w-5" />
+      default:
+        return null
+    }
+  }
+
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl">
-      <div className="mb-6">
+    <div className="container mx-auto px-4 py-6 sm:py-8 max-w-7xl">
+      <div className="mb-4 sm:mb-6">
         <Link href="/cart" className="text-teal-600 hover:text-teal-700 flex items-center transition-colors">
           <ChevronLeft className="h-4 w-4 mr-1" />
           Back to Cart
         </Link>
       </div>
 
-      <h1 className="text-2xl sm:text-3xl font-bold mb-8">Checkout</h1>
+      <h1 className="text-xl sm:text-3xl font-bold mb-4 sm:mb-8">Checkout</h1>
 
-      {/* Checkout Progress */}
-      <div className="mb-10 bg-white rounded-xl p-4 shadow-sm">
+      {/* Mobile Order Summary Toggle */}
+      <div className="lg:hidden mb-4">
+        <button
+          onClick={() => setShowMobileOrderSummary(!showMobileOrderSummary)}
+          className="flex items-center justify-between w-full bg-white p-4 rounded-lg shadow-sm border border-gray-200"
+        >
+          <div className="flex items-center">
+            <ShoppingBag className="h-5 w-5 text-teal-600 mr-2" />
+            <div>
+              <span className="font-medium text-sm">Order Summary</span>
+              <p className="text-xs text-gray-500">
+                {items.length} items · ${total.toFixed(2)}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center">
+            <span className="font-bold text-teal-700 mr-2">${total.toFixed(2)}</span>
+            {showMobileOrderSummary ? (
+              <ChevronUp className="h-5 w-5 text-gray-400" />
+            ) : (
+              <ChevronDown className="h-5 w-5 text-gray-400" />
+            )}
+          </div>
+        </button>
+      </div>
+
+      {/* Mobile Order Summary - Collapsible */}
+      {showMobileOrderSummary && (
+        <div className="lg:hidden mb-6 animate-slideDown">
+          <OrderSummary
+            items={items}
+            subtotal={subtotal}
+            deliveryZone={shippingInfo.delivery_zone}
+            exactDistance={shippingInfo.exact_distance}
+            exactFee={shippingInfo.exact_fee}
+          />
+        </div>
+      )}
+
+      {/* Checkout Progress - Desktop */}
+      <div className="hidden sm:block mb-10 bg-white rounded-xl p-4 shadow-sm">
         <div className="flex items-center justify-between max-w-3xl mx-auto">
           <div className="flex flex-col items-center cursor-pointer group" onClick={() => setStep(1)}>
             <div
@@ -402,7 +460,58 @@ function CheckoutContent() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      {/* Checkout Progress - Mobile */}
+      <div className="sm:hidden mb-6">
+        <div className="bg-white rounded-xl p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            {[1, 2, 3].map((stepNumber) => (
+              <div
+                key={stepNumber}
+                className={`flex flex-col items-center ${
+                  stepNumber === step ? "text-teal-600" : stepNumber < step ? "text-gray-500" : "text-gray-300"
+                } ${
+                  (stepNumber === 2 && !deliveryZone && step === 1) ||
+                  (stepNumber === 3 && (!paymentMethod || step === 1))
+                    ? "opacity-50"
+                    : "cursor-pointer"
+                }`}
+                onClick={() => {
+                  // Apply the same navigation logic as desktop
+                  if (
+                    (stepNumber === 2 && (step >= 2 || deliveryZone)) ||
+                    (stepNumber === 3 && (step >= 3 || (deliveryZone && paymentMethod))) ||
+                    stepNumber === 1
+                  ) {
+                    setStep(stepNumber)
+                    window.scrollTo({ top: 0, behavior: "smooth" })
+                  }
+                }}
+              >
+                <div
+                  className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                    stepNumber === step
+                      ? "bg-teal-100 text-teal-600 border-2 border-teal-600"
+                      : stepNumber < step
+                        ? "bg-teal-600 text-white"
+                        : "bg-gray-100 text-gray-400"
+                  }`}
+                >
+                  {getStepIcon(stepNumber)}
+                </div>
+                <span className="text-xs mt-1 font-medium">
+                  {stepNumber === 1 ? "Shipping" : stepNumber === 2 ? "Payment" : "Review"}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="flex mt-2">
+            <div className={`h-1 flex-1 ${step > 1 ? "bg-teal-600" : "bg-gray-200"}`}></div>
+            <div className={`h-1 flex-1 ${step > 2 ? "bg-teal-600" : "bg-gray-200"}`}></div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
         {/* Main Checkout Form */}
         <div className="lg:col-span-2">
           {step === 1 && (
@@ -592,8 +701,8 @@ function CheckoutContent() {
           )}
         </div>
 
-        {/* Order Summary */}
-        <div className="lg:col-span-1">
+        {/* Order Summary - Desktop Only */}
+        <div className="hidden lg:block lg:col-span-1">
           <div className="sticky top-4">
             <OrderSummary
               items={items}
@@ -602,34 +711,82 @@ function CheckoutContent() {
               exactDistance={shippingInfo.exact_distance}
               exactFee={shippingInfo.exact_fee}
             />
-
-            {/* Trust Badges */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6 mt-6 shadow-md">
-              <h3 className="font-medium mb-4">Why Shop With Us</h3>
-              <div className="space-y-4">
-                <div className="flex items-center">
-                  <div className="h-8 w-8 rounded-full bg-teal-100 flex items-center justify-center mr-3">
-                    <Truck className="h-4 w-4 text-teal-600" />
-                  </div>
-                  <span className="text-sm">Fast Delivery</span>
-                </div>
-                <div className="flex items-center">
-                  <div className="h-8 w-8 rounded-full bg-teal-100 flex items-center justify-center mr-3">
-                    <ShieldCheck className="h-4 w-4 text-teal-600" />
-                  </div>
-                  <span className="text-sm">Secure Payments</span>
-                </div>
-                <div className="flex items-center">
-                  <div className="h-8 w-8 rounded-full bg-teal-100 flex items-center justify-center mr-3">
-                    <AlertCircle className="h-4 w-4 text-teal-600" />
-                  </div>
-                  <span className="text-sm">24/7 Customer Support</span>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>
+
+      {/* Mobile Checkout Progress Indicator */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-50 lg:hidden">
+        <div className="flex justify-between items-center">
+          <div>
+            <p className="text-sm font-medium">
+              Total: <span className="text-teal-700">${total.toFixed(2)}</span>
+            </p>
+            <p className="text-xs text-gray-500">
+              {step === 1
+                ? "Complete shipping information to continue"
+                : step === 2
+                  ? "Select payment method to continue"
+                  : "Review your order before placing"}
+            </p>
+          </div>
+          {step < 3 ? (
+            <button
+              onClick={() => {
+                if (step === 1 && deliveryZone) {
+                  const form = document.getElementById("checkout-form")
+                  if (form) {
+                    form.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }))
+                  }
+                } else if (step === 2) {
+                  handlePaymentSubmit(paymentMethod)
+                }
+              }}
+              disabled={step === 1 && !deliveryZone}
+              className="bg-teal-600 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
+            >
+              {step === 1 ? "Continue" : "Review Order"}
+            </button>
+          ) : (
+            <button
+              onClick={handlePlaceOrder}
+              disabled={isSubmitting}
+              className="bg-teal-600 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 flex items-center"
+            >
+              {isSubmitting ? (
+                <>
+                  <svg
+                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  Processing...
+                </>
+              ) : (
+                "Place Order"
+              )}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Add padding at the bottom to prevent content from being hidden behind the fixed checkout button */}
+      <div className="lg:hidden h-20"></div>
     </div>
   )
 }
