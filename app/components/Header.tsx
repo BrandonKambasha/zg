@@ -536,7 +536,15 @@ export default function Header() {
                 <HelpCircle className="h-4 w-4 mr-2" />
                 Help
               </button>
-
+              <button
+                className={`px-4 py-3 font-medium text-sm flex items-center whitespace-nowrap ${
+                  activeMobileTab === "settings" ? "text-teal-600 border-b-2 border-teal-600" : "text-gray-600"
+                }`}
+                onClick={() => setActiveMobileTab("settings")}
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Settings
+              </button>
             </div>
 
             {/* Tab content */}
@@ -752,7 +760,59 @@ export default function Header() {
                 </div>
               )}
 
+              {activeMobileTab === "settings" && (
+                <div className="space-y-4">
+                  <div className="p-4 bg-gray-50 rounded-xl">
+                    <h3 className="font-medium text-gray-900 mb-3">App Settings</h3>
 
+                    <div className="space-y-3">
+                      {/* Use the actual reset functions directly */}
+                      <button
+                        className="flex items-center w-full p-3 bg-white rounded-lg shadow-sm mb-3"
+                        onClick={() => {
+                          resetCartAndWishlist()
+                          setIsMenuOpen(false)
+                        }}
+                      >
+                        <RefreshCw className="h-5 w-5 mr-3 text-teal-600" />
+                        <span className="font-medium">Reset Cart & Wishlist</span>
+                      </button>
+
+                      <button
+                        className="flex items-center w-full p-3 bg-white rounded-lg shadow-sm mb-3"
+                        onClick={() => {
+                          resetAuthState()
+                          setIsMenuOpen(false)
+                        }}
+                      >
+                        <RefreshCw className="h-5 w-5 mr-3 text-teal-600" />
+                        <span className="font-medium">Reset Auth State</span>
+                      </button>
+
+                      <button
+                        className="flex items-center w-full p-3 bg-white rounded-lg shadow-sm"
+                        onClick={() => {
+                          resetAppState()
+                          setIsMenuOpen(false)
+                        }}
+                      >
+                        <RefreshCw className="h-5 w-5 mr-3 text-teal-600" />
+                        <span className="font-medium">Reset Everything</span>
+                      </button>
+                    </div>
+
+                    <p className="text-xs text-gray-500 mt-3">
+                      Resetting the app state will clear your selected items and return the app to its default state.
+                    </p>
+                  </div>
+
+                  <div className="p-4 bg-gray-50 rounded-xl">
+                    <h3 className="font-medium text-gray-900 mb-3">About the App</h3>
+                    <p className="text-sm text-gray-600">Zimbabwe Groceries v1.0.0</p>
+                    <p className="text-xs text-gray-500 mt-1">© 2023 Zimbabwe Groceries. All rights reserved.</p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
