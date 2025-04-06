@@ -225,12 +225,14 @@ export default function Header() {
           <div className="flex items-center justify-between">
             {/* Logo */}
             <Link href="/" className="flex items-center">
-              <div className="relative h-10 w-10 mr-2">
-                <Image src="/images/logo2.png" alt="Zimbabwe Groceries Logo" fill className="object-contain" />
+              <div className="relative h-12 w-12 mr-2 flex-shrink-0">
+                <Image src="/images/logo3.png" alt="Zimbabwe Groceries Logo" fill className="object-contain" />
               </div>
-              <div>
-                <span className="text-xl font-bold text-gradient">Zimbabwe Groceries</span>
-                <span className="block text-xs text-gray-500">Authentic Taste of Home</span>
+              <div className="flex flex-col">
+                <span className="text-lg md:text-xl font-bold text-gradient bg-clip-text text-transparent bg-gradient-to-r from-zimbabwe-green via-zimbabwe-yellow to-zimbabwe-red">
+                  Zimbabwe Groceries
+                </span>
+                <span className="hidden md:block text-xs text-gray-600 font-medium">Authentic Taste of Home</span>
               </div>
             </Link>
 
@@ -494,8 +496,8 @@ export default function Header() {
             {/* Mobile menu header with close button */}
             <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white z-10">
               <div className="flex items-center">
-                <div className="relative h-8 w-8 mr-2">
-                  <Image src="/placeholder.svg" alt="Zimbabwe Groceries Logo" fill className="object-contain" />
+                <div className="relative h-10 w-10 mr-2 flex-shrink-0">
+                  <Image src="/images/logo3.png" alt="Zimbabwe Groceries Logo" fill className="object-contain" />
                 </div>
                 <span className="font-semibold text-lg">Menu</span>
               </div>
