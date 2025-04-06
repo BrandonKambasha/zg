@@ -98,10 +98,11 @@ export default function DeliveryZoneMap({ onZoneChange, initialAddress = {}, for
   const autocompleteService = useRef<google.maps.places.AutocompleteService | null>(null)
   const placesService = useRef<google.maps.places.PlacesService | null>(null)
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const addressInputRef = useRef<HTMLInputElement>(null)
 
   // Initialize Google services when API is loaded
   useEffect(() => {
-    if (isLoaded && window.google) {
+    if (isLoaded && typeof window !== "undefined" && window.google) {
       autocompleteService.current = new window.google.maps.places.AutocompleteService()
     }
   }, [isLoaded])
@@ -109,7 +110,7 @@ export default function DeliveryZoneMap({ onZoneChange, initialAddress = {}, for
   // Initialize Places Service when map is loaded
   const onMapLoad = (map: google.maps.Map) => {
     mapRef.current = map
-    if (window.google) {
+    if (typeof window !== "undefined" && window.google && window.google.maps) {
       placesService.current = new window.google.maps.places.PlacesService(map)
     }
   }
@@ -270,33 +271,17 @@ export default function DeliveryZoneMap({ onZoneChange, initialAddress = {}, for
     setZoneConfirmed(false)
   }
 
-  // Confirm selected zone
+  // Fix the confirmZone function to properly handle touch events
+  // This function ONLY confirms the zone but doesn't proceed to the next step
   const confirmZone = (e: React.MouseEvent) => {
     // Prevent default behavior and stop propagation
     e.preventDefault()
     e.stopPropagation()
 
-    // Prevent any form submission that might be triggered
-    if (formId) {
-      const form = document.getElementById(formId) as HTMLFormElement
-      if (form) {
-        // Temporarily disable form submission
-        const originalOnSubmit = form.onsubmit
-        form.onsubmit = (e) => {
-          e.preventDefault()
-          return false
-        }
-
-        // Restore original handler after a delay
-        setTimeout(() => {
-          form.onsubmit = originalOnSubmit
-        }, 100)
-      }
-    }
-
     if (selectedZone !== null) {
       setZoneConfirmed(true)
-      onZoneChange(selectedZone, exactDistance, exactFee) // This will notify the parent component immediately
+      // Notify parent component of zone change, but don't trigger form submission
+      onZoneChange(selectedZone, exactDistance, exactFee)
     }
   }
 
@@ -333,7 +318,7 @@ export default function DeliveryZoneMap({ onZoneChange, initialAddress = {}, for
       determineZone(coords)
 
       // Try to reverse geocode to get an address
-      if (window.google) {
+      if (typeof window !== "undefined" && window.google && window.google.maps) {
         const geocoder = new window.google.maps.Geocoder()
         geocoder.geocode({ location: coords }, (results, status) => {
           if (status === "OK" && results && results[0]) {
@@ -412,12 +397,17 @@ export default function DeliveryZoneMap({ onZoneChange, initialAddress = {}, for
           <div className="flex items-center space-x-2">
             <div className="relative flex-1">
               <input
+                ref={addressInputRef}
                 type="text"
                 placeholder="Enter your complete address"
                 value={addressInput}
                 onChange={handleAddressChange}
                 className="w-full p-2 pl-9 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
-                onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                onFocus={() => {
+                  if (suggestions.length > 0) {
+                    setShowSuggestions(true)
+                  }
+                }}
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
               />
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -430,6 +420,10 @@ export default function DeliveryZoneMap({ onZoneChange, initialAddress = {}, for
             <button
               type="button"
               onClick={handleSearchClick}
+              onTouchStart={(e) => {
+                e.preventDefault()
+                handleSearchClick(e as unknown as React.MouseEvent)
+              }}
               className="bg-teal-600 text-white px-4 py-2 rounded-md hover:bg-teal-700 transition flex items-center"
             >
               <span>Search</span>
@@ -455,7 +449,14 @@ export default function DeliveryZoneMap({ onZoneChange, initialAddress = {}, for
                   <li
                     key={suggestion.place_id}
                     className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-start"
-                    onMouseDown={() => handleSelectSuggestion(suggestion)}
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      handleSelectSuggestion(suggestion)
+                    }}
+                    onTouchStart={(e) => {
+                      e.preventDefault()
+                      handleSelectSuggestion(suggestion)
+                    }}
                   >
                     <MapPin className="h-4 w-4 mt-0.5 mr-2 flex-shrink-0 text-gray-500" />
                     <div className="flex flex-col">
@@ -523,7 +524,12 @@ export default function DeliveryZoneMap({ onZoneChange, initialAddress = {}, for
               )}
 
               {/* Address marker */}
-              {addressCoords && <Marker position={addressCoords} animation={window.google.maps.Animation.DROP} />}
+              {addressCoords &&
+                addressCoords.lat &&
+                addressCoords.lng &&
+                typeof window !== "undefined" &&
+                window.google &&
+                window.google.maps && <Marker position={addressCoords} animation={window.google.maps.Animation.DROP} />}
             </GoogleMap>
           ) : (
             <div className="h-full w-full flex items-center justify-center bg-gray-100">
@@ -551,15 +557,17 @@ export default function DeliveryZoneMap({ onZoneChange, initialAddress = {}, for
               )}
             </p>
             {!zoneConfirmed && (
-              <div onClick={(e) => e.stopPropagation()}>
-                <button
-                  type="button"
-                  onClick={confirmZone}
-                  className="w-full bg-yellow-600 text-white py-2 rounded-md hover:bg-yellow-700 transition"
-                >
-                  Confirm Delivery Fee: ${getZoneFee(selectedZone)}
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={confirmZone}
+                onTouchStart={(e) => {
+                  e.preventDefault()
+                  confirmZone(e as unknown as React.MouseEvent)
+                }}
+                className="w-full bg-yellow-600 text-white py-2 rounded-md hover:bg-yellow-700 transition"
+              >
+                Confirm Delivery Fee: ${getZoneFee(selectedZone)}
+              </button>
             )}
           </div>
         )}

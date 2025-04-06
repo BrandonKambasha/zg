@@ -105,24 +105,10 @@ export default function CheckoutForm({ initialValues, onSubmit, isSubmitting }: 
 
     setZoneConfirmed(zoneIsConfirmed)
 
-    // Immediately notify parent component of zone change
-    if (zoneIsConfirmed) {
-      // Create a partial data object with the delivery_zone and exact values
-      const partialData = {
-        ...getValues(),
-        delivery_zone: zone,
-        exact_distance: distance,
-        exact_fee: fee,
-      }
-
-      // Call onSubmit with the current form data and the new zone
-      onSubmit(partialData)
-
-      // Reset the flag after a short delay
-      setTimeout(() => {
-        setIsZoneUpdate(false)
-      }, 100)
-    }
+    // Reset the flag after a short delay
+    setTimeout(() => {
+      setIsZoneUpdate(false)
+    }, 100)
   }
 
   // Get current address for the map
@@ -574,6 +560,13 @@ export default function CheckoutForm({ initialValues, onSubmit, isSubmitting }: 
           type="submit"
           disabled={isSubmitting || (showMap && country === "Zimbabwe" && (!deliveryZone || !zoneConfirmed))}
           className="w-full bg-gradient-to-r from-teal-500 to-teal-600 text-white py-4 rounded-lg hover:from-teal-600 hover:to-teal-700 transition-all transform hover:scale-[1.01] active:scale-[0.99] disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100 font-medium text-lg shadow-md"
+          onTouchStart={(e) => {
+            // Prevent default touch behavior to avoid double-click issues
+            if (!(showMap && country === "Zimbabwe" && (!deliveryZone || !zoneConfirmed)) && !isSubmitting) {
+              e.preventDefault()
+              // Allow the click event to proceed naturally
+            }
+          }}
         >
           {isSubmitting ? (
             <span className="flex items-center justify-center">
