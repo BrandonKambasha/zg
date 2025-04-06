@@ -139,7 +139,7 @@ export default function AboutUsPage() {
               viewport={{ once: true }}
             >
               <div className="relative h-64 md:h-96 rounded-xl overflow-hidden shadow-lg">
-                <Image src="/images/story.jpg?height=600&width=800" alt="Our story" fill className="object-cover" />
+                <Image src="/images/story.png?height=600&width=800" alt="Our story" fill className="object-cover" />
               </div>
             </motion.div>
             <motion.div
