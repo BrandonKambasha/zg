@@ -383,7 +383,7 @@ export default function Home() {
             {[
               {
                 icon: <Truck className="h-6 w-6 text-teal-600" />,
-                title: "Free Shipping",
+                title: "Free Delivery",
                 desc: "On orders over $100",
               },
               {
