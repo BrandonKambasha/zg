@@ -33,7 +33,7 @@ export default function PromoBanner() {
     },
     {
       id: 2,
-      text: "Free shipping within Harare for orders over $100 🚚",
+      text: "Free delivery within Harare for orders over $100 🚚",
       icon: <Truck className="h-4 w-4 sm:h-5 sm:w-5" />,
       bgColor: "bg-teal-600",
       textColor: "text-white",
