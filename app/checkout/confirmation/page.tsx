@@ -122,6 +122,9 @@ export default function OrderConfirmationPage() {
           <p className="text-gray-600 mb-2">
             Your order has been placed successfully. We've sent a confirmation email with your order details.
           </p>
+          <p className="text-gray-600 mb-2">
+            📩 Important: The email might land in your spam or junk folder, especially if its your first time ordering with us — please check there to make sure you dont miss any updates!
+          </p>
           {order && (
             <p className="text-gray-600">
               Order ID: <span className="font-medium">#{order.id}</span>
