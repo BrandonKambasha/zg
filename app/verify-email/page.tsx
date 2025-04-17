@@ -1,13 +1,14 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import toast from "react-hot-toast"
 import { Loader2, CheckCircle, XCircle, ArrowLeft, Mail } from "lucide-react"
 import { verifyEmail, resendVerificationEmail } from "../lib/api/Auth"
 
-export default function VerifyEmailPage() {
+// Client component that uses useSearchParams
+function VerifyEmailContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isLoading, setIsLoading] = useState(true)
@@ -181,6 +182,27 @@ export default function VerifyEmailPage() {
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  )
+}
+
+// Main page component with Suspense boundary
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={<VerifyEmailLoading />}>
+      <VerifyEmailContent />
+    </Suspense>
+  )
+}
+
+// Loading component
+function VerifyEmailLoading() {
+  return (
+    <div className="min-h-[80vh] flex items-center justify-center">
+      <div className="text-center">
+        <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-600"></div>
+        <p className="mt-4 text-gray-600">Loading...</p>
       </div>
     </div>
   )
