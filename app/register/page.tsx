@@ -98,9 +98,12 @@ export default function RegisterPage() {
       })
 
       if (response.access_token) {
+        // Store email for verification resend
+        localStorage.setItem("pendingVerificationEmail", data.email)
+
         login(response.access_token, response.user)
-        toast.success("Registration successful!")
-        router.push("/account")
+        toast.success("Registration successful! Please check your email to verify your account.")
+        router.push("/verify-email/status")
       }
     } catch (error: any) {
       toast.error(error.message || "Registration failed")
@@ -281,4 +284,3 @@ export default function RegisterPage() {
     </div>
   )
 }
-

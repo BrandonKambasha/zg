@@ -86,3 +86,45 @@ export const deleteAccount = async (password: string): Promise<void> => {
   }
 }
 
+// New functions for email verification and password reset
+
+export const sendPasswordResetLink = async (data: { email: string }) => {
+  try {
+    const response = await axios.post("/password/email", data)
+    return response.data
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || "Failed to send password reset link")
+  }
+}
+
+export const resetPassword = async (data: {
+  token: string
+  email: string
+  password: string
+  password_confirmation: string
+}) => {
+  try {
+    const response = await axios.post("/password/reset", data)
+    return response.data
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || "Failed to reset password")
+  }
+}
+
+export const verifyEmail = async (data: { token: string }) => {
+  try {
+    const response = await axios.post("/email/verify", data)
+    return response.data
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || "Failed to verify email")
+  }
+}
+
+export const resendVerificationEmail = async (data: { email: string }) => {
+  try {
+    const response = await axios.post("/email/verify/resend", data)
+    return response.data
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || "Failed to resend verification email")
+  }
+}

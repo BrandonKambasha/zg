@@ -84,12 +84,28 @@ export default function LoginPage() {
       })
 
       if (response.access_token) {
-        login(response.access_token)
+        // Check if email is verified
+        if (response.user && !response.user.email_verified_at) {
+          // Store email for resend verification
+          localStorage.setItem("pendingVerificationEmail", data.email)
+
+          toast.error("Please verify your email before logging in")
+          router.push("/verify-email/status")
+          return
+        }
+
+        login(response.access_token, response.user)
         toast.success("Login successful!")
         router.push("/account")
       }
     } catch (error: any) {
-      toast.error(error.message || "Login failed")
+      // Check if the error is due to unverified email
+      if (error.message?.toLowerCase().includes("verify your email")) {
+        localStorage.setItem("pendingVerificationEmail", data.email)
+        router.push("/verify-email/status")
+      } else {
+        toast.error(error.message || "Login failed")
+      }
     } finally {
       setIsLoading(false)
     }
@@ -190,4 +206,3 @@ export default function LoginPage() {
     </div>
   )
 }
-
