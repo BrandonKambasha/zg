@@ -83,6 +83,7 @@ export default function Header() {
   const router = useRouter()
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
   const { logout, isAuthenticated } = useAuth()
+  const drawerRef = useRef<HTMLDivElement>(null)
 
   // Add the handleLogout function
   const handleLogout = async () => {
@@ -173,6 +174,28 @@ export default function Header() {
     fetchSearchResults()
   }, [debouncedSearchQuery])
 
+  // Add touch event handling for mobile
+  useEffect(() => {
+    const handleTouchStart = (e: TouchEvent) => {
+      // If we're touching a menu item, prevent default behavior
+      const target = e.target as Element
+      if (
+        target.closest(".mobile-menu-button") ||
+        target.closest(".mobile-search-button") ||
+        target.closest(".mobile-tab-button") ||
+        target.closest(".menu-item") ||
+        target.closest(".menu-link")
+      ) {
+        e.stopPropagation()
+      }
+    }
+
+    document.addEventListener("touchstart", handleTouchStart, { passive: true })
+    return () => {
+      document.removeEventListener("touchstart", handleTouchStart)
+    }
+  }, [])
+
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value)
     if (e.target.value.trim().length >= 2) {
@@ -205,7 +228,11 @@ export default function Header() {
   }
 
   // Toggle dropdown visibility for touch devices
-  const toggleDropdown = (groupTitle: string) => {
+  const toggleDropdown = (groupTitle: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
     setActiveGroup(activeGroup === groupTitle ? null : groupTitle)
   }
 
@@ -252,7 +279,11 @@ export default function Header() {
                 <div key={group.title} className="relative">
                   <button
                     className="flex items-center px-3 py-2 text-gray-700 hover:text-teal-600 hover:bg-gray-50 transition-colors rounded-md"
-                    onClick={() => toggleDropdown(group.title)}
+                    onClick={(e) => toggleDropdown(group.title, e)}
+                    onTouchStart={(e) => {
+                      e.preventDefault()
+                      toggleDropdown(group.title)
+                    }}
                     aria-expanded={activeGroup === group.title}
                   >
                     <span className="flex items-center">
@@ -391,8 +422,18 @@ export default function Header() {
             <div className="flex lg:hidden items-center space-x-3">
               {/* Search button for mobile */}
               <button
-                onClick={() => setSearchFocused(!searchFocused)}
-                className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setSearchFocused(!searchFocused)
+                }}
+                onTouchStart={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setSearchFocused(!searchFocused)
+                }}
+                className="p-2 rounded-full hover:bg-gray-100 transition-colors mobile-search-button"
+                aria-label="Search"
               >
                 <Search className="h-5 w-5 text-gray-700" />
               </button>
@@ -401,8 +442,18 @@ export default function Header() {
               <CartIcon />
 
               <button
-                onClick={() => setIsMenuOpen(true)}
-                className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setIsMenuOpen(true)
+                }}
+                onTouchStart={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setIsMenuOpen(true)
+                }}
+                className="p-2 rounded-full hover:bg-gray-100 transition-colors mobile-menu-button"
+                aria-label="Open menu"
               >
                 <Menu className="h-5 w-5 text-gray-700" />
               </button>
@@ -433,7 +484,16 @@ export default function Header() {
               <button
                 type="button"
                 className="absolute right-3 top-2 text-gray-400"
-                onClick={() => setSearchFocused(false)}
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setSearchFocused(false)
+                }}
+                onTouchStart={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setSearchFocused(false)
+                }}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -447,6 +507,11 @@ export default function Header() {
                     key={`${result.type}-${result.id}`}
                     className="w-full text-left px-4 py-2 hover:bg-teal-50 flex items-center"
                     onClick={() => {
+                      handleSearchResultClick(result)
+                      setSearchFocused(false)
+                    }}
+                    onTouchStart={(e) => {
+                      e.stopPropagation()
                       handleSearchResultClick(result)
                       setSearchFocused(false)
                     }}
@@ -478,6 +543,12 @@ export default function Header() {
                       setShowSearchResults(false)
                       setSearchFocused(false)
                     }}
+                    onTouchStart={(e) => {
+                      e.stopPropagation()
+                      router.push(`/search?q=${encodeURIComponent(searchQuery)}`)
+                      setShowSearchResults(false)
+                      setSearchFocused(false)
+                    }}
                     className="text-sm text-teal-600 hover:text-teal-700 font-medium"
                   >
                     See all results
@@ -491,335 +562,535 @@ export default function Header() {
 
       {/* Redesigned Mobile Menu - Fixed position to work when scrolled */}
       {isMenuOpen && (
-        <div className="lg:hidden fixed inset-0 bg-white z-[100] overflow-y-auto">
-          <div className="flex flex-col h-full">
-            {/* Mobile menu header with close button */}
-            <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white z-10">
-              <div className="flex items-center">
-                <div className="relative h-10 w-10 mr-2 flex-shrink-0">
-                  <Image src="/images/logo3.png" alt="Zimbabwe Groceries Logo" fill className="object-contain" />
-                </div>
-                <span className="font-semibold text-lg">Menu</span>
+        <div className="lg:hidden fixed inset-0 bg-white z-[100] overflow-y-auto flex flex-col" ref={drawerRef}>
+          {/* Mobile menu header with close button */}
+          <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white z-10">
+            <div className="flex items-center">
+              <div className="relative h-10 w-10 mr-2 flex-shrink-0">
+                <Image src="/images/logo3.png" alt="Zimbabwe Groceries Logo" fill className="object-contain" />
               </div>
-              <button
-                onClick={() => setIsMenuOpen(false)}
-                className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-              >
-                <X className="h-5 w-5 text-gray-700" />
-              </button>
+              <span className="font-semibold text-lg">Menu</span>
             </div>
+            <button
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                setIsMenuOpen(false)
+              }}
+              onTouchStart={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                setIsMenuOpen(false)
+              }}
+              className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+              aria-label="Close menu"
+            >
+              <X className="h-5 w-5 text-gray-700" />
+            </button>
+          </div>
 
-            {/* Mobile menu tabs */}
-            <div className="flex border-b overflow-x-auto scrollbar-hide sticky top-[65px] bg-white z-10">
-              <button
-                className={`px-4 py-3 font-medium text-sm flex items-center whitespace-nowrap ${
-                  activeMobileTab === "shop" ? "text-teal-600 border-b-2 border-teal-600" : "text-gray-600"
-                }`}
-                onClick={() => setActiveMobileTab("shop")}
-              >
-                <ShoppingCart className="h-4 w-4 mr-2" />
-                Shop
-              </button>
-              <button
-                className={`px-4 py-3 font-medium text-sm flex items-center whitespace-nowrap ${
-                  activeMobileTab === "account" ? "text-teal-600 border-b-2 border-teal-600" : "text-gray-600"
-                }`}
-                onClick={() => setActiveMobileTab("account")}
-              >
-                <User className="h-4 w-4 mr-2" />
-                Account
-              </button>
-              <button
-                className={`px-4 py-3 font-medium text-sm flex items-center whitespace-nowrap ${
-                  activeMobileTab === "help" ? "text-teal-600 border-b-2 border-teal-600" : "text-gray-600"
-                }`}
-                onClick={() => setActiveMobileTab("help")}
-              >
-                <HelpCircle className="h-4 w-4 mr-2" />
-                Help
-              </button>
-              <button
-                className={`px-4 py-3 font-medium text-sm flex items-center whitespace-nowrap ${
-                  activeMobileTab === "settings" ? "text-teal-600 border-b-2 border-teal-600" : "text-gray-600"
-                }`}
-                onClick={() => setActiveMobileTab("settings")}
-              >
-                <Settings className="h-4 w-4 mr-2" />
-                Settings
-              </button>
-            </div>
+          {/* Mobile menu tabs */}
+          <div className="flex border-b overflow-x-auto scrollbar-hide sticky top-[65px] bg-white z-10">
+            <button
+              className={`px-4 py-3 font-medium text-sm flex items-center whitespace-nowrap mobile-tab-button ${
+                activeMobileTab === "shop" ? "text-teal-600 border-b-2 border-teal-600" : "text-gray-600"
+              }`}
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                setActiveMobileTab("shop")
+              }}
+              onTouchStart={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                setActiveMobileTab("shop")
+              }}
+            >
+              <ShoppingCart className="h-4 w-4 mr-2" />
+              Shop
+            </button>
+            <button
+              className={`px-4 py-3 font-medium text-sm flex items-center whitespace-nowrap mobile-tab-button ${
+                activeMobileTab === "account" ? "text-teal-600 border-b-2 border-teal-600" : "text-gray-600"
+              }`}
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                setActiveMobileTab("account")
+              }}
+              onTouchStart={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                setActiveMobileTab("account")
+              }}
+            >
+              <User className="h-4 w-4 mr-2" />
+              Account
+            </button>
+            <button
+              className={`px-4 py-3 font-medium text-sm flex items-center whitespace-nowrap mobile-tab-button ${
+                activeMobileTab === "help" ? "text-teal-600 border-b-2 border-teal-600" : "text-gray-600"
+              }`}
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                setActiveMobileTab("help")
+              }}
+              onTouchStart={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                setActiveMobileTab("help")
+              }}
+            >
+              <HelpCircle className="h-4 w-4 mr-2" />
+              Help
+            </button>
+            <button
+              className={`px-4 py-3 font-medium text-sm flex items-center whitespace-nowrap mobile-tab-button ${
+                activeMobileTab === "settings" ? "text-teal-600 border-b-2 border-teal-600" : "text-gray-600"
+              }`}
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                setActiveMobileTab("settings")
+              }}
+              onTouchStart={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                setActiveMobileTab("settings")
+              }}
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Settings
+            </button>
+          </div>
 
-            {/* Tab content */}
-            <div className="flex-1 p-4 overflow-y-auto">
-              {activeMobileTab === "shop" && (
-                <div className="space-y-6">
-                  <Link
-                    href="/"
-                    className="flex items-center p-3 bg-teal-50 text-teal-700 rounded-xl shadow-sm"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <Home className="h-5 w-5 mr-3" />
-                    <span className="font-medium">Home </span>
-                  </Link>
+          {/* Tab content */}
+          <div className="flex-1 p-4 overflow-y-auto">
+            {activeMobileTab === "shop" && (
+              <div className="space-y-6">
+                <Link
+                  href="/"
+                  className="flex items-center p-3 bg-teal-50 text-teal-700 rounded-xl shadow-sm menu-link"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setIsMenuOpen(false)
+                  }}
+                  onTouchStart={(e) => {
+                    e.stopPropagation()
+                    setIsMenuOpen(false)
+                    router.push("/")
+                  }}
+                >
+                  <Home className="h-5 w-5 mr-3" />
+                  <span className="font-medium">Home </span>
+                </Link>
 
-                  <div>
-                    <h3 className="font-medium text-gray-900 mb-3">Products</h3>
-                    <div className="grid grid-cols-2 gap-3">
-                      <Link
-                        href="/products"
-                        className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-                        onClick={() => setIsMenuOpen(false)}
-                      >
-                        <Package className="h-6 w-6 mb-2 text-teal-600" />
-                        <span className="text-sm font-medium">All Products</span>
-                      </Link>
-                      <Link
-                        href="/categories"
-                        className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-                        onClick={() => setIsMenuOpen(false)}
-                      >
-                        <Grid className="h-6 w-6 mb-2 text-teal-600" />
-                        <span className="text-sm font-medium">Categories</span>
-                      </Link>
-                      <Link
-                        href="/hampers"
-                        className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-                        onClick={() => setIsMenuOpen(false)}
-                      >
-                        <ShoppingBag className="h-6 w-6 mb-2 text-teal-600" />
-                        <span className="text-sm font-medium">Hampers</span>
-                      </Link>
-                      <Link
-                        href="/wishlist"
-                        className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-                        onClick={() => setIsMenuOpen(false)}
-                      >
-                        <Heart className="h-6 w-6 mb-2 text-teal-600" />
-                        <span className="text-sm font-medium">Wishlist</span>
-                      </Link>
-                    </div>
-                  </div>
-
-                  {categories.length > 0 && (
-                    <div>
-                      <h3 className="font-medium text-gray-900 mb-3">Popular Categories</h3>
-                      <div className="space-y-2">
-                        {topCategories.map((category) => (
-                          <Link
-                            key={category.id}
-                            href={`/products?category=${category.id}`}
-                            className="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                            onClick={() => setIsMenuOpen(false)}
-                          >
-                            <span>{category.name}</span>
-                            <ChevronDown className="h-4 w-4 ml-auto rotate-270" />
-                          </Link>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {activeMobileTab === "account" && (
-                <div className="space-y-4">
-                  <Link
-                    href="/account"
-                    className="flex items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <User className="h-5 w-5 mr-3 text-teal-600" />
-                    <div>
-                      <span className="font-medium block">My Account</span>
-                      <span className="text-xs text-gray-500">View your profile and settings</span>
-                    </div>
-                  </Link>
-
-                  <Link
-                    href="/account"
-                    className="flex items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <Package className="h-5 w-5 mr-3 text-teal-600" />
-                    <div>
-                      <span className="font-medium block">My Orders</span>
-                      <span className="text-xs text-gray-500">Track and manage your orders</span>
-                    </div>
-                  </Link>
-
-                  <Link
-                    href="/wishlist"
-                    className="flex items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <Heart className="h-5 w-5 mr-3 text-teal-600" />
-                    <div>
-                      <span className="font-medium block">Wishlist</span>
-                      <span className="text-xs text-gray-500">View your saved items</span>
-                    </div>
-                  </Link>
-
-                  <Link
-                    href="/cart"
-                    className="flex items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <ShoppingCart className="h-5 w-5 mr-3 text-teal-600" />
-                    <div>
-                      <span className="font-medium block">Shopping Cart</span>
-                      <span className="text-xs text-gray-500">View your cart and checkout</span>
-                    </div>
-                  </Link>
-
-                  {isAuthenticated ? (
-                    <button
-                      className="flex items-center w-full p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors text-left"
-                      onClick={handleLogout}
-                    >
-                      <LogOut className="h-5 w-5 mr-3 text-teal-600" />
-                      <div>
-                        <span className="font-medium block">Logout</span>
-                        <span className="text-xs text-gray-500">Sign out of your account</span>
-                      </div>
-                    </button>
-                  ) : (
+                <div>
+                  <h3 className="font-medium text-gray-900 mb-3">Products</h3>
+                  <div className="grid grid-cols-2 gap-3">
                     <Link
-                      href="/login"
-                      className="flex items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-                      onClick={() => setIsMenuOpen(false)}
+                      href="/products"
+                      className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors menu-link"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setIsMenuOpen(false)
+                      }}
+                      onTouchStart={(e) => {
+                        e.stopPropagation()
+                        setIsMenuOpen(false)
+                        router.push("/products")
+                      }}
                     >
-                      <LogOut className="h-5 w-5 mr-3 text-teal-600" />
-                      <div>
-                        <span className="font-medium block">Login</span>
-                        <span className="text-xs text-gray-500">Sign in to your account</span>
-                      </div>
+                      <Package className="h-6 w-6 mb-2 text-teal-600" />
+                      <span className="text-sm font-medium">All Products</span>
                     </Link>
-                  )}
-                </div>
-              )}
-
-              {activeMobileTab === "help" && (
-                <div className="space-y-4">
-                  <Link
-                    href="/contact"
-                    className="flex items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <Phone className="h-5 w-5 mr-3 text-teal-600" />
-                    <div>
-                      <span className="font-medium block">Contact Us</span>
-                      <span className="text-xs text-gray-500">Get in touch with our team</span>
-                    </div>
-                  </Link>
-
-                  <Link
-                    href="/shipping"
-                    className="flex items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <Package className="h-5 w-5 mr-3 text-teal-600" />
-                    <div>
-                      <span className="font-medium block">Shipping Info</span>
-                      <span className="text-xs text-gray-500">Learn about our shipping policies</span>
-                    </div>
-                  </Link>
-
-                  <Link
-                    href="/returns"
-                    className="flex items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <RefreshCw className="h-5 w-5 mr-3 text-teal-600" />
-                    <div>
-                      <span className="font-medium block">Returns &amp; Refunds</span>
-                      <span className="text-xs text-gray-500">Learn about our return policies</span>
-                    </div>
-                  </Link>
-
-                  <Link
-                    href="/about-us"
-                    className="flex items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <Info className="h-5 w-5 mr-3 text-teal-600" />
-                    <div>
-                      <span className="font-medium block">About Us</span>
-                      <span className="text-xs text-gray-500">Learn more about our company</span>
-                    </div>
-                  </Link>
-
-                  <Link
-                    href="/how-it-works"
-                    className="flex items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <HelpCircle className="h-5 w-5 mr-3 text-teal-600" />
-                    <div>
-                      <span className="font-medium block">How It Works</span>
-                      <span className="text-xs text-gray-500">Learn how our service works</span>
-                    </div>
-                  </Link>
-                </div>
-              )}
-
-              {activeMobileTab === "settings" && (
-                <div className="space-y-4">
-                  <div className="p-4 bg-gray-50 rounded-xl">
-                    <h3 className="font-medium text-gray-900 mb-3">App Settings</h3>
-
-                    <div className="space-y-3">
-                      {/* Use the actual reset functions directly */}
-                      <button
-                        className="flex items-center w-full p-3 bg-white rounded-lg shadow-sm mb-3"
-                        onClick={() => {
-                          resetCartAndWishlist()
-                          setIsMenuOpen(false)
-                        }}
-                      >
-                        <RefreshCw className="h-5 w-5 mr-3 text-teal-600" />
-                        <span className="font-medium">Reset Cart & Wishlist</span>
-                      </button>
-
-                      <button
-                        className="flex items-center w-full p-3 bg-white rounded-lg shadow-sm mb-3"
-                        onClick={() => {
-                          resetAuthState()
-                          setIsMenuOpen(false)
-                        }}
-                      >
-                        <RefreshCw className="h-5 w-5 mr-3 text-teal-600" />
-                        <span className="font-medium">Reset Auth State</span>
-                      </button>
-
-                      <button
-                        className="flex items-center w-full p-3 bg-white rounded-lg shadow-sm"
-                        onClick={() => {
-                          resetAppState()
-                          setIsMenuOpen(false)
-                        }}
-                      >
-                        <RefreshCw className="h-5 w-5 mr-3 text-teal-600" />
-                        <span className="font-medium">Reset Everything</span>
-                      </button>
-                    </div>
-
-                    <p className="text-xs text-gray-500 mt-3">
-                      Resetting the app state will clear your selected items and return the app to its default state.
-                    </p>
-                  </div>
-
-                  <div className="p-4 bg-gray-50 rounded-xl">
-                    <h3 className="font-medium text-gray-900 mb-3">About the App</h3>
-                    <p className="text-sm text-gray-600">Zimbabwe Groceries v1.0.0</p>
-                    <p className="text-xs text-gray-500 mt-1">© 2023 Zimbabwe Groceries. All rights reserved.</p>
+                    <Link
+                      href="/categories"
+                      className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors menu-link"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setIsMenuOpen(false)
+                      }}
+                      onTouchStart={(e) => {
+                        e.stopPropagation()
+                        setIsMenuOpen(false)
+                        router.push("/categories")
+                      }}
+                    >
+                      <Grid className="h-6 w-6 mb-2 text-teal-600" />
+                      <span className="text-sm font-medium">Categories</span>
+                    </Link>
+                    <Link
+                      href="/hampers"
+                      className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors menu-link"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setIsMenuOpen(false)
+                      }}
+                      onTouchStart={(e) => {
+                        e.stopPropagation()
+                        setIsMenuOpen(false)
+                        router.push("/hampers")
+                      }}
+                    >
+                      <ShoppingBag className="h-6 w-6 mb-2 text-teal-600" />
+                      <span className="text-sm font-medium">Hampers</span>
+                    </Link>
+                    <Link
+                      href="/wishlist"
+                      className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors menu-link"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setIsMenuOpen(false)
+                      }}
+                      onTouchStart={(e) => {
+                        e.stopPropagation()
+                        setIsMenuOpen(false)
+                        router.push("/wishlist")
+                      }}
+                    >
+                      <Heart className="h-6 w-6 mb-2 text-teal-600" />
+                      <span className="text-sm font-medium">Wishlist</span>
+                    </Link>
                   </div>
                 </div>
-              )}
-            </div>
+
+                {categories.length > 0 && (
+                  <div>
+                    <h3 className="font-medium text-gray-900 mb-3">Popular Categories</h3>
+                    <div className="space-y-2">
+                      {topCategories.map((category) => (
+                        <Link
+                          key={category.id}
+                          href={`/products?category=${category.id}`}
+                          className="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors menu-link"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setIsMenuOpen(false)
+                          }}
+                          onTouchStart={(e) => {
+                            e.stopPropagation()
+                            setIsMenuOpen(false)
+                            router.push(`/products?category=${category.id}`)
+                          }}
+                        >
+                          <span>{category.name}</span>
+                          <ChevronDown className="h-4 w-4 ml-auto rotate-270" />
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeMobileTab === "account" && (
+              <div className="space-y-4">
+                <Link
+                  href="/account"
+                  className="flex items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors menu-link"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setIsMenuOpen(false)
+                  }}
+                  onTouchStart={(e) => {
+                    e.stopPropagation()
+                    setIsMenuOpen(false)
+                    router.push("/account")
+                  }}
+                >
+                  <User className="h-5 w-5 mr-3 text-teal-600" />
+                  <div>
+                    <span className="font-medium block">My Account</span>
+                    <span className="text-xs text-gray-500">View your profile and settings</span>
+                  </div>
+                </Link>
+
+                <Link
+                  href="/account"
+                  className="flex items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors menu-link"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setIsMenuOpen(false)
+                  }}
+                  onTouchStart={(e) => {
+                    e.stopPropagation()
+                    setIsMenuOpen(false)
+                    router.push("/account")
+                  }}
+                >
+                  <Package className="h-5 w-5 mr-3 text-teal-600" />
+                  <div>
+                    <span className="font-medium block">My Orders</span>
+                    <span className="text-xs text-gray-500">Track and manage your orders</span>
+                  </div>
+                </Link>
+
+                <Link
+                  href="/wishlist"
+                  className="flex items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors menu-link"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setIsMenuOpen(false)
+                  }}
+                  onTouchStart={(e) => {
+                    e.stopPropagation()
+                    setIsMenuOpen(false)
+                    router.push("/wishlist")
+                  }}
+                >
+                  <Heart className="h-5 w-5 mr-3 text-teal-600" />
+                  <div>
+                    <span className="font-medium block">Wishlist</span>
+                    <span className="text-xs text-gray-500">View your saved items</span>
+                  </div>
+                </Link>
+
+                <Link
+                  href="/cart"
+                  className="flex items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors menu-link"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setIsMenuOpen(false)
+                  }}
+                  onTouchStart={(e) => {
+                    e.stopPropagation()
+                    setIsMenuOpen(false)
+                    router.push("/cart")
+                  }}
+                >
+                  <ShoppingCart className="h-5 w-5 mr-3 text-teal-600" />
+                  <div>
+                    <span className="font-medium block">Shopping Cart</span>
+                    <span className="text-xs text-gray-500">View your cart and checkout</span>
+                  </div>
+                </Link>
+
+                {isAuthenticated ? (
+                  <button
+                    className="flex items-center w-full p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors text-left menu-item"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      handleLogout()
+                    }}
+                    onTouchStart={(e) => {
+                      e.preventDefault()
+                      handleLogout()
+                    }}
+                  >
+                    <LogOut className="h-5 w-5 mr-3 text-teal-600" />
+                    <div>
+                      <span className="font-medium block">Logout</span>
+                      <span className="text-xs text-gray-500">Sign out of your account</span>
+                    </div>
+                  </button>
+                ) : (
+                  <Link
+                    href="/login"
+                    className="flex items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors menu-link"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setIsMenuOpen(false)
+                    }}
+                    onTouchStart={(e) => {
+                      e.stopPropagation()
+                      setIsMenuOpen(false)
+                      router.push("/login")
+                    }}
+                  >
+                    <LogOut className="h-5 w-5 mr-3 text-teal-600" />
+                    <div>
+                      <span className="font-medium block">Login</span>
+                      <span className="text-xs text-gray-500">Sign in to your account</span>
+                    </div>
+                  </Link>
+                )}
+              </div>
+            )}
+
+            {activeMobileTab === "help" && (
+              <div className="space-y-4">
+                <Link
+                  href="/contact"
+                  className="flex items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors menu-link"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setIsMenuOpen(false)
+                  }}
+                  onTouchStart={(e) => {
+                    e.stopPropagation()
+                    setIsMenuOpen(false)
+                    router.push("/contact")
+                  }}
+                >
+                  <Phone className="h-5 w-5 mr-3 text-teal-600" />
+                  <div>
+                    <span className="font-medium block">Contact Us</span>
+                    <span className="text-xs text-gray-500">Get in touch with our team</span>
+                  </div>
+                </Link>
+
+                <Link
+                  href="/shipping"
+                  className="flex items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors menu-link"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setIsMenuOpen(false)
+                  }}
+                  onTouchStart={(e) => {
+                    e.stopPropagation()
+                    setIsMenuOpen(false)
+                    router.push("/shipping")
+                  }}
+                >
+                  <Package className="h-5 w-5 mr-3 text-teal-600" />
+                  <div>
+                    <span className="font-medium block">Shipping Info</span>
+                    <span className="text-xs text-gray-500">Learn about our shipping policies</span>
+                  </div>
+                </Link>
+
+                <Link
+                  href="/returns"
+                  className="flex items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors menu-link"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setIsMenuOpen(false)
+                  }}
+                  onTouchStart={(e) => {
+                    e.stopPropagation()
+                    setIsMenuOpen(false)
+                    router.push("/returns")
+                  }}
+                >
+                  <RefreshCw className="h-5 w-5 mr-3 text-teal-600" />
+                  <div>
+                    <span className="font-medium block">Returns &amp; Refunds</span>
+                    <span className="text-xs text-gray-500">Learn about our return policies</span>
+                  </div>
+                </Link>
+
+                <Link
+                  href="/about-us"
+                  className="flex items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors menu-link"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setIsMenuOpen(false)
+                  }}
+                  onTouchStart={(e) => {
+                    e.stopPropagation()
+                    setIsMenuOpen(false)
+                    router.push("/about-us")
+                  }}
+                >
+                  <Info className="h-5 w-5 mr-3 text-teal-600" />
+                  <div>
+                    <span className="font-medium block">About Us</span>
+                    <span className="text-xs text-gray-500">Learn more about our company</span>
+                  </div>
+                </Link>
+
+                <Link
+                  href="/how-it-works"
+                  className="flex items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors menu-link"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setIsMenuOpen(false)
+                  }}
+                  onTouchStart={(e) => {
+                    e.stopPropagation()
+                    setIsMenuOpen(false)
+                    router.push("/how-it-works")
+                  }}
+                >
+                  <HelpCircle className="h-5 w-5 mr-3 text-teal-600" />
+                  <div>
+                    <span className="font-medium block">How It Works</span>
+                    <span className="text-xs text-gray-500">Learn how our service works</span>
+                  </div>
+                </Link>
+              </div>
+            )}
+
+            {activeMobileTab === "settings" && (
+              <div className="space-y-4">
+                <div className="p-4 bg-gray-50 rounded-xl">
+                  <h3 className="font-medium text-gray-900 mb-3">App Settings</h3>
+
+                  <div className="space-y-3">
+                    {/* Use the actual reset functions directly */}
+                    <button
+                      className="flex items-center w-full p-3 bg-white rounded-lg shadow-sm mb-3 menu-item"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        resetCartAndWishlist()
+                        setIsMenuOpen(false)
+                      }}
+                      onTouchStart={(e) => {
+                        e.preventDefault()
+                        resetCartAndWishlist()
+                        setIsMenuOpen(false)
+                      }}
+                    >
+                      <RefreshCw className="h-5 w-5 mr-3 text-teal-600" />
+                      <span className="font-medium">Reset Cart & Wishlist</span>
+                    </button>
+
+                    <button
+                      className="flex items-center w-full p-3 bg-white rounded-lg shadow-sm mb-3 menu-item"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        resetAuthState()
+                        setIsMenuOpen(false)
+                      }}
+                      onTouchStart={(e) => {
+                        e.preventDefault()
+                        resetAuthState()
+                        setIsMenuOpen(false)
+                      }}
+                    >
+                      <RefreshCw className="h-5 w-5 mr-3 text-teal-600" />
+                      <span className="font-medium">Reset Auth State</span>
+                    </button>
+
+                    <button
+                      className="flex items-center w-full p-3 bg-white rounded-lg shadow-sm menu-item"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        resetAppState()
+                        setIsMenuOpen(false)
+                      }}
+                      onTouchStart={(e) => {
+                        e.preventDefault()
+                        resetAppState()
+                        setIsMenuOpen(false)
+                      }}
+                    >
+                      <RefreshCw className="h-5 w-5 mr-3 text-teal-600" />
+                      <span className="font-medium">Reset Everything</span>
+                    </button>
+                  </div>
+
+                  <p className="text-xs text-gray-500 mt-3">
+                    Resetting the app state will clear your selected items and return the app to its default state.
+                  </p>
+                </div>
+
+                <div className="p-4 bg-gray-50 rounded-xl">
+                  <h3 className="font-medium text-gray-900 mb-3">About the App</h3>
+                  <p className="text-sm text-gray-600">Zimbabwe Groceries v1.0.0</p>
+                  <p className="text-xs text-gray-500 mt-1">© 2023 Zimbabwe Groceries. All rights reserved.</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
     </>
   )
 }
-

@@ -30,8 +30,28 @@ export default function CartIcon() {
   // Calculate total items count
   const itemsCount = items.reduce((total, item) => total + item.quantity, 0)
 
+  // Add touch event handling for mobile
+  useEffect(() => {
+    const handleTouchStart = (e: TouchEvent) => {
+      // If we're touching the cart icon, prevent default behavior
+      if ((e.target as Element).closest(".cart-icon-link")) {
+        e.stopPropagation()
+      }
+    }
+
+    document.addEventListener("touchstart", handleTouchStart, { passive: true })
+    return () => {
+      document.removeEventListener("touchstart", handleTouchStart)
+    }
+  }, [])
+
   return (
-    <Link href="/cart" className="p-2 rounded-full hover:bg-gray-100 transition-colors relative">
+    <Link
+      href="/cart"
+      className="p-3 rounded-lg hover:bg-gray-100 transition-colors relative cart-icon-link"
+      onClick={(e) => e.stopPropagation()}
+      onTouchStart={(e) => e.stopPropagation()}
+    >
       <ShoppingCart className="h-5 w-5 text-gray-700" />
       {mounted && itemsCount > 0 && (
         <span
@@ -45,4 +65,3 @@ export default function CartIcon() {
     </Link>
   )
 }
-

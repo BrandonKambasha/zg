@@ -586,12 +586,16 @@ export default function CheckoutForm({ initialValues, onSubmit, isSubmitting }: 
               Processing...
             </span>
           ) : showMap && country === "Zimbabwe" && (!deliveryZone || !zoneConfirmed) ? (
-            "Please select and confirm your delivery zone"
+            "Please select delivery zone"
           ) : (
-            "Proceed to Payment"
+            "Proceed to Payment (Double Click)"
           )}
         </button>
-
+        {!isSubmitting && !(showMap && country === "Zimbabwe" && (!deliveryZone || !zoneConfirmed)) && (
+          <p className="text-sm text-gray-600 mt-2 text-center">
+            Please double tap the button to confirm you’re human and proceed.
+          </p>
+        )}
         {showMap && country === "Zimbabwe" && (!deliveryZone || !zoneConfirmed) && (
           <p className="text-amber-600 text-sm mt-3 text-center">
             You must complete the delivery zone selection process before proceeding

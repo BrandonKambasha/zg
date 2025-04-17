@@ -27,8 +27,28 @@ export default function WishlistIcon() {
     }
   }, [items.length, mounted, prevItemsCount])
 
+  // Add touch event handling for mobile
+  useEffect(() => {
+    const handleTouchStart = (e: TouchEvent) => {
+      // If we're touching the wishlist icon, prevent default behavior
+      if ((e.target as Element).closest(".wishlist-icon-link")) {
+        e.stopPropagation()
+      }
+    }
+
+    document.addEventListener("touchstart", handleTouchStart, { passive: true })
+    return () => {
+      document.removeEventListener("touchstart", handleTouchStart)
+    }
+  }, [])
+
   return (
-    <Link href="/wishlist" className="p-2 rounded-full hover:bg-gray-100 transition-colors relative">
+    <Link
+      href="/wishlist"
+      className="p-3 rounded-lg hover:bg-gray-100 transition-colors relative wishlist-icon-link"
+      onClick={(e) => e.stopPropagation()}
+      onTouchStart={(e) => e.stopPropagation()}
+    >
       <Heart className="h-5 w-5 text-gray-700" />
       {mounted && items.length > 0 && (
         <span
@@ -42,4 +62,3 @@ export default function WishlistIcon() {
     </Link>
   )
 }
-

@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useRouter, useSearchParams } from "next/navigation"
 import { useState, useEffect } from "react"
 import { ChevronDown, Check, ArrowUpDown } from "lucide-react"
@@ -29,7 +31,13 @@ export default function ProductSort({ currentSort, isMobile = false, onClose }: 
   const currentSortLabel = sortOptions.find((option) => option.value === currentSort)?.label || "Featured"
 
   // Handle sort change
-  const handleSortChange = (sortValue: string) => {
+  const handleSortChange = (sortValue: string, e?: React.MouseEvent) => {
+    // Prevent event bubbling
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+
     // Create a new URLSearchParams object from the current search params
     const params = new URLSearchParams(searchParams.toString())
 
@@ -66,13 +74,36 @@ export default function ProductSort({ currentSort, isMobile = false, onClose }: 
     }
   }, [isOpen])
 
+  // Handle touch events for mobile
+  useEffect(() => {
+    const handleTouchStart = (e: TouchEvent) => {
+      // If we're touching a sort option, prevent default behavior
+      if ((e.target as Element).closest(".sort-dropdown li")) {
+        e.stopPropagation()
+      }
+    }
+
+    document.addEventListener("touchstart", handleTouchStart, { passive: true })
+    return () => {
+      document.removeEventListener("touchstart", handleTouchStart)
+    }
+  }, [])
+
   // Completely different button rendering for mobile vs desktop
   if (isMobile) {
     return (
       <div className="relative sort-dropdown">
         <button
           className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 rounded-md bg-white text-sm"
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            setIsOpen(!isOpen)
+          }}
+          onTouchStart={(e) => {
+            e.preventDefault()
+            setIsOpen(!isOpen)
+          }}
           aria-haspopup="listbox"
           aria-expanded={isOpen}
         >
@@ -89,7 +120,11 @@ export default function ProductSort({ currentSort, isMobile = false, onClose }: 
                   className={`px-4 py-2 text-sm cursor-pointer hover:bg-gray-100 flex items-center justify-between ${
                     currentSort === option.value ? "bg-gray-50 text-teal-600" : ""
                   }`}
-                  onClick={() => handleSortChange(option.value)}
+                  onClick={(e) => handleSortChange(option.value, e)}
+                  onTouchStart={(e) => {
+                    e.stopPropagation()
+                    handleSortChange(option.value)
+                  }}
                   role="option"
                   aria-selected={currentSort === option.value}
                 >
@@ -109,7 +144,15 @@ export default function ProductSort({ currentSort, isMobile = false, onClose }: 
     <div className="relative sort-dropdown">
       <button
         className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md bg-white text-sm"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          setIsOpen(!isOpen)
+        }}
+        onTouchStart={(e) => {
+          e.preventDefault()
+          setIsOpen(!isOpen)
+        }}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
       >
@@ -126,7 +169,11 @@ export default function ProductSort({ currentSort, isMobile = false, onClose }: 
                 className={`px-4 py-2 text-sm cursor-pointer hover:bg-gray-100 flex items-center justify-between ${
                   currentSort === option.value ? "bg-gray-50 text-teal-600" : ""
                 }`}
-                onClick={() => handleSortChange(option.value)}
+                onClick={(e) => handleSortChange(option.value, e)}
+                onTouchStart={(e) => {
+                  e.stopPropagation()
+                  handleSortChange(option.value)
+                }}
                 role="option"
                 aria-selected={currentSort === option.value}
               >
@@ -140,4 +187,3 @@ export default function ProductSort({ currentSort, isMobile = false, onClose }: 
     </div>
   )
 }
-

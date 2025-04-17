@@ -68,7 +68,9 @@ export default function ProductFilters({
   useEffect(() => {
     const filterButton = document.getElementById("mobile-filter-button")
     if (filterButton) {
-      filterButton.addEventListener("click", () => {
+      filterButton.addEventListener("click", (e) => {
+        e.preventDefault()
+        e.stopPropagation()
         setIsFilterDrawerOpen(true)
         document.body.style.overflow = "hidden" // Prevent scrolling when drawer is open
 
@@ -84,6 +86,28 @@ export default function ProductFilters({
         // No changes yet
         setHasFilterChanges(false)
       })
+
+      // Add touch event handler
+      filterButton.addEventListener(
+        "touchstart",
+        (e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          setIsFilterDrawerOpen(true)
+          document.body.style.overflow = "hidden"
+
+          currentFiltersRef.current = {
+            query: searchInputRef.current?.value || searchQuery,
+            minPrice: priceRange[0],
+            maxPrice: priceRange[1],
+            rating: selectedRating,
+            category: selectedCategory,
+          }
+
+          setHasFilterChanges(false)
+        },
+        { passive: false },
+      )
     }
 
     // Close drawer when clicking outside
@@ -228,7 +252,13 @@ export default function ProductFilters({
     return `/products${urlParams.toString() ? `?${urlParams.toString()}` : ""}`
   }
 
-  const handleCategoryClick = (categoryId: number) => {
+  const handleCategoryClick = (categoryId: number, e?: React.MouseEvent) => {
+    // Prevent event bubbling
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+
     // Update current filters ref
     currentFiltersRef.current.category = categoryId
     setHasFilterChanges(true)
@@ -245,6 +275,7 @@ export default function ProductFilters({
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    e.stopPropagation()
 
     // Get the search query from the ref instead of state
     const query = searchInputRef.current?.value || ""
@@ -294,7 +325,12 @@ export default function ProductFilters({
     }
   }
 
-  const handleRatingChange = (rating: number) => {
+  const handleRatingChange = (rating: number, e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+
     const newRating = selectedRating === rating ? null : rating
     setSelectedRating(newRating)
 
@@ -312,7 +348,12 @@ export default function ProductFilters({
     }
   }
 
-  const handleClearFilters = () => {
+  const handleClearFilters = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+
     setSearchQuery("")
     // Clear the search input ref
     if (searchInputRef.current) {
@@ -338,7 +379,12 @@ export default function ProductFilters({
   }
 
   // Apply all filters at once (for mobile)
-  const handleApplyAllFilters = () => {
+  const handleApplyAllFilters = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+
     const { query, minPrice: min, maxPrice: max, rating, category } = currentFiltersRef.current
 
     router.push(
@@ -353,6 +399,27 @@ export default function ProductFilters({
 
     closeDrawer()
   }
+
+  // Add touch event handling for mobile
+  useEffect(() => {
+    const handleTouchStart = (e: TouchEvent) => {
+      // If we're touching a filter button or section, prevent default behavior
+      const target = e.target as Element
+      if (
+        target.closest(".filter-category-item") ||
+        target.closest(".filter-section-toggle") ||
+        target.closest(".filter-price-input") ||
+        target.closest(".filter-button")
+      ) {
+        e.stopPropagation()
+      }
+    }
+
+    document.addEventListener("touchstart", handleTouchStart, { passive: true })
+    return () => {
+      document.removeEventListener("touchstart", handleTouchStart)
+    }
+  }, [])
 
   const FilterContent = () => (
     <div className="divide-y divide-gray-200">
@@ -376,7 +443,13 @@ export default function ProductFilters({
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
           <button
             type="submit"
-            className="absolute right-2 top-1.5 px-2 py-1 bg-teal-600 text-white text-xs rounded hover:bg-teal-700"
+            className="absolute right-2 top-1.5 px-2 py-1 bg-teal-600 text-white text-xs rounded hover:bg-teal-700 filter-button"
+            onClick={(e) => {
+              e.stopPropagation()
+            }}
+            onTouchStart={(e) => {
+              e.stopPropagation()
+            }}
           >
             Search
           </button>
@@ -386,8 +459,16 @@ export default function ProductFilters({
       {/* Categories filter */}
       <div className="py-4">
         <button
-          className="flex justify-between items-center w-full text-left font-medium mb-3"
-          onClick={() => setShowCategories(!showCategories)}
+          className="flex justify-between items-center w-full text-left font-medium mb-3 filter-section-toggle"
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            setShowCategories(!showCategories)
+          }}
+          onTouchStart={(e) => {
+            e.preventDefault()
+            setShowCategories(!showCategories)
+          }}
           aria-expanded={showCategories}
           aria-controls="categories-panel"
         >
@@ -398,10 +479,25 @@ export default function ProductFilters({
         {showCategories && (
           <div id="categories-panel" className="space-y-1 mt-2 max-h-60 overflow-y-auto pr-2">
             <div
-              className={`flex items-center cursor-pointer py-1.5 px-2 rounded-md ${
+              className={`flex items-center cursor-pointer py-1.5 px-2 rounded-md filter-category-item ${
                 !selectedCategory ? "bg-teal-50 text-teal-700" : "hover:bg-gray-50"
               }`}
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+
+                // Update current filters ref
+                currentFiltersRef.current.category = undefined
+                setHasFilterChanges(true)
+
+                // For desktop, navigate immediately
+                if (!isFilterDrawerOpen) {
+                  router.push("/products")
+                }
+              }}
+              onTouchStart={(e) => {
+                e.preventDefault()
+
                 // Update current filters ref
                 currentFiltersRef.current.category = undefined
                 setHasFilterChanges(true)
@@ -422,10 +518,14 @@ export default function ProductFilters({
             {categories.map((category) => (
               <div
                 key={category.id}
-                className={`flex items-center cursor-pointer py-1.5 px-2 rounded-md ${
+                className={`flex items-center cursor-pointer py-1.5 px-2 rounded-md filter-category-item ${
                   selectedCategory === category.id ? "bg-teal-50 text-teal-700" : "hover:bg-gray-50"
                 }`}
-                onClick={() => handleCategoryClick(category.id)}
+                onClick={(e) => handleCategoryClick(category.id, e)}
+                onTouchStart={(e) => {
+                  e.preventDefault()
+                  handleCategoryClick(category.id)
+                }}
                 role="button"
                 tabIndex={0}
                 aria-label={category.name}
@@ -441,8 +541,16 @@ export default function ProductFilters({
       {/* Price filter */}
       <div className="py-4">
         <button
-          className="flex justify-between items-center w-full text-left font-medium mb-3"
-          onClick={() => setShowPrice(!showPrice)}
+          className="flex justify-between items-center w-full text-left font-medium mb-3 filter-section-toggle"
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            setShowPrice(!showPrice)
+          }}
+          onTouchStart={(e) => {
+            e.preventDefault()
+            setShowPrice(!showPrice)
+          }}
           aria-expanded={showPrice}
           aria-controls="price-panel"
         >
@@ -466,12 +574,15 @@ export default function ProductFilters({
                   max={maxPrice}
                   value={priceRange[0]}
                   onChange={(e) => {
+                    e.stopPropagation()
                     const value = e.target.value === "" ? minPrice : Number.parseInt(e.target.value)
                     if (!isNaN(value)) {
                       handlePriceChange({ target: { value: String(value) } } as React.ChangeEvent<HTMLInputElement>, 0)
                     }
                   }}
-                  className="w-full p-1.5 text-sm border border-gray-300 rounded-md"
+                  onClick={(e) => e.stopPropagation()}
+                  onTouchStart={(e) => e.stopPropagation()}
+                  className="w-full p-1.5 text-sm border border-gray-300 rounded-md filter-price-input"
                   onBlur={() => {
                     if (priceRange[0] < minPrice) {
                       handlePriceChange(
@@ -500,12 +611,15 @@ export default function ProductFilters({
                   max={maxPrice}
                   value={priceRange[1]}
                   onChange={(e) => {
+                    e.stopPropagation()
                     const value = e.target.value === "" ? maxPrice : Number.parseInt(e.target.value)
                     if (!isNaN(value)) {
                       handlePriceChange({ target: { value: String(value) } } as React.ChangeEvent<HTMLInputElement>, 1)
                     }
                   }}
-                  className="w-full p-1.5 text-sm border border-gray-300 rounded-md"
+                  onClick={(e) => e.stopPropagation()}
+                  onTouchStart={(e) => e.stopPropagation()}
+                  className="w-full p-1.5 text-sm border border-gray-300 rounded-md filter-price-input"
                   onBlur={() => {
                     if (priceRange[1] > maxPrice) {
                       handlePriceChange(
@@ -526,7 +640,9 @@ export default function ProductFilters({
             {/* Only show Apply Price button on desktop */}
             {!isFilterDrawerOpen && (
               <button
-                onClick={() => {
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
                   router.push(
                     buildFilterUrl({
                       minPrice: priceRange[0],
@@ -534,7 +650,16 @@ export default function ProductFilters({
                     }),
                   )
                 }}
-                className="mt-3 w-full py-1.5 bg-teal-600 text-white text-sm rounded-md hover:bg-teal-700 transition-colors"
+                onTouchStart={(e) => {
+                  e.preventDefault()
+                  router.push(
+                    buildFilterUrl({
+                      minPrice: priceRange[0],
+                      maxPrice: priceRange[1],
+                    }),
+                  )
+                }}
+                className="mt-3 w-full py-1.5 bg-teal-600 text-white text-sm rounded-md hover:bg-teal-700 transition-colors filter-button"
               >
                 Apply Price Filter
               </button>
@@ -547,8 +672,12 @@ export default function ProductFilters({
       {!isFilterDrawerOpen && (
         <div className="py-4">
           <button
-            onClick={handleClearFilters}
-            className="w-full py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            onClick={(e) => handleClearFilters(e)}
+            onTouchStart={(e) => {
+              e.preventDefault()
+              handleClearFilters()
+            }}
+            className="w-full py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors filter-button"
           >
             Clear All Filters
           </button>
@@ -575,15 +704,30 @@ export default function ProductFilters({
         <div className="px-4 py-3 border-b flex items-center justify-between bg-white sticky top-0 z-10">
           <div className="flex items-center">
             <button
-              onClick={closeDrawer}
-              className="mr-3 p-1.5 rounded-full hover:bg-gray-100"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                closeDrawer()
+              }}
+              onTouchStart={(e) => {
+                e.preventDefault()
+                closeDrawer()
+              }}
+              className="mr-3 p-1.5 rounded-full hover:bg-gray-100 filter-button"
               aria-label="Close filters"
             >
               <X className="h-5 w-5" />
             </button>
             <h2 className="text-lg font-semibold">Filters</h2>
           </div>
-          <button onClick={handleClearFilters} className="text-sm text-teal-600 font-medium">
+          <button
+            onClick={(e) => handleClearFilters(e)}
+            onTouchStart={(e) => {
+              e.preventDefault()
+              handleClearFilters()
+            }}
+            className="text-sm text-teal-600 font-medium filter-button"
+          >
             Clear All
           </button>
         </div>
@@ -601,11 +745,18 @@ export default function ProductFilters({
                 <div className="bg-teal-50 text-teal-700 text-xs px-2 py-1 rounded-full flex items-center">
                   <span>Category: {categories.find((c) => c.id === selectedCategory)?.name}</span>
                   <button
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
                       currentFiltersRef.current.category = undefined
                       setHasFilterChanges(true)
                     }}
-                    className="ml-1 p-0.5"
+                    onTouchStart={(e) => {
+                      e.preventDefault()
+                      currentFiltersRef.current.category = undefined
+                      setHasFilterChanges(true)
+                    }}
+                    className="ml-1 p-0.5 filter-button"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -618,13 +769,22 @@ export default function ProductFilters({
                     Price: ${priceRange[0]} - ${priceRange[1]}
                   </span>
                   <button
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
                       setPriceRange([minPrice, maxPrice])
                       currentFiltersRef.current.minPrice = minPrice
                       currentFiltersRef.current.maxPrice = maxPrice
                       setHasFilterChanges(true)
                     }}
-                    className="ml-1 p-0.5"
+                    onTouchStart={(e) => {
+                      e.preventDefault()
+                      setPriceRange([minPrice, maxPrice])
+                      currentFiltersRef.current.minPrice = minPrice
+                      currentFiltersRef.current.maxPrice = maxPrice
+                      setHasFilterChanges(true)
+                    }}
+                    className="ml-1 p-0.5 filter-button"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -635,7 +795,9 @@ export default function ProductFilters({
                 <div className="bg-teal-50 text-teal-700 text-xs px-2 py-1 rounded-full flex items-center">
                   <span>Search: {searchQuery}</span>
                   <button
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
                       setSearchQuery("")
                       if (searchInputRef.current) {
                         searchInputRef.current.value = ""
@@ -643,7 +805,16 @@ export default function ProductFilters({
                       currentFiltersRef.current.query = ""
                       setHasFilterChanges(true)
                     }}
-                    className="ml-1 p-0.5"
+                    onTouchStart={(e) => {
+                      e.preventDefault()
+                      setSearchQuery("")
+                      if (searchInputRef.current) {
+                        searchInputRef.current.value = ""
+                      }
+                      currentFiltersRef.current.query = ""
+                      setHasFilterChanges(true)
+                    }}
+                    className="ml-1 p-0.5 filter-button"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -662,14 +833,19 @@ export default function ProductFilters({
                 defaultValue={searchQuery}
                 ref={searchInputRef}
                 onChange={(e) => {
+                  e.stopPropagation()
                   currentFiltersRef.current.query = e.target.value
                   setHasFilterChanges(true)
                 }}
+                onClick={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
               />
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
               <button
                 type="submit"
-                className="absolute right-2 top-1.5 px-2 py-1 bg-teal-600 text-white text-xs rounded hover:bg-teal-700"
+                className="absolute right-2 top-1.5 px-2 py-1 bg-teal-600 text-white text-xs rounded hover:bg-teal-700 filter-button"
+                onClick={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
               >
                 Search
               </button>
@@ -679,8 +855,16 @@ export default function ProductFilters({
           {/* Categories - Collapsible */}
           <div className="mb-6 border border-gray-200 rounded-lg overflow-hidden">
             <button
-              className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 text-left"
-              onClick={() => setMobileCategoriesOpen(!mobileCategoriesOpen)}
+              className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 text-left filter-section-toggle"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                setMobileCategoriesOpen(!mobileCategoriesOpen)
+              }}
+              onTouchStart={(e) => {
+                e.preventDefault()
+                setMobileCategoriesOpen(!mobileCategoriesOpen)
+              }}
               aria-expanded={mobileCategoriesOpen}
             >
               <h3 className="font-medium text-base">Categories</h3>
@@ -695,10 +879,17 @@ export default function ProductFilters({
               <div className="p-3 border-t border-gray-200">
                 <div className="grid grid-cols-1 gap-2">
                   <button
-                    className={`text-left px-3 py-2.5 rounded-md flex items-center justify-between ${
+                    className={`text-left px-3 py-2.5 rounded-md flex items-center justify-between filter-category-item ${
                       !selectedCategory ? "bg-teal-50 text-teal-700" : "bg-gray-50 text-gray-700"
                     }`}
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      currentFiltersRef.current.category = undefined
+                      setHasFilterChanges(true)
+                    }}
+                    onTouchStart={(e) => {
+                      e.preventDefault()
                       currentFiltersRef.current.category = undefined
                       setHasFilterChanges(true)
                     }}
@@ -710,10 +901,14 @@ export default function ProductFilters({
                   {categories.map((category) => (
                     <button
                       key={category.id}
-                      className={`text-left px-3 py-2.5 rounded-md flex items-center justify-between ${
+                      className={`text-left px-3 py-2.5 rounded-md flex items-center justify-between filter-category-item ${
                         selectedCategory === category.id ? "bg-teal-50 text-teal-700" : "bg-gray-50 text-gray-700"
                       }`}
-                      onClick={() => handleCategoryClick(category.id)}
+                      onClick={(e) => handleCategoryClick(category.id, e)}
+                      onTouchStart={(e) => {
+                        e.preventDefault()
+                        handleCategoryClick(category.id)
+                      }}
                     >
                       <span>{category.name}</span>
                       {selectedCategory === category.id && <Check className="h-4 w-4" />}
@@ -727,8 +922,16 @@ export default function ProductFilters({
           {/* Price Range - Collapsible */}
           <div className="mb-6 border border-gray-200 rounded-lg overflow-hidden">
             <button
-              className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 text-left"
-              onClick={() => setMobilePriceOpen(!mobilePriceOpen)}
+              className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 text-left filter-section-toggle"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                setMobilePriceOpen(!mobilePriceOpen)
+              }}
+              onTouchStart={(e) => {
+                e.preventDefault()
+                setMobilePriceOpen(!mobilePriceOpen)
+              }}
               aria-expanded={mobilePriceOpen}
             >
               <h3 className="font-medium text-base">Price Range</h3>
@@ -753,8 +956,10 @@ export default function ProductFilters({
                       min={minPrice}
                       max={maxPrice}
                       defaultValue={priceRange[0]}
-                      className="w-full p-2 text-base border border-gray-300 rounded-md"
+                      className="w-full p-2 text-base border border-gray-300 rounded-md filter-price-input"
                       style={{ fontSize: "16px" }} /* Prevents zoom on mobile */
+                      onClick={(e) => e.stopPropagation()}
+                      onTouchStart={(e) => e.stopPropagation()}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") {
                           const value = Number.parseInt((e.target as HTMLInputElement).value)
@@ -789,8 +994,10 @@ export default function ProductFilters({
                       min={minPrice}
                       max={maxPrice}
                       defaultValue={priceRange[1]}
-                      className="w-full p-2 text-base border border-gray-300 rounded-md"
+                      className="w-full p-2 text-base border border-gray-300 rounded-md filter-price-input"
                       style={{ fontSize: "16px" }} /* Prevents zoom on mobile */
+                      onClick={(e) => e.stopPropagation()}
+                      onTouchStart={(e) => e.stopPropagation()}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") {
                           const value = Number.parseInt((e.target as HTMLInputElement).value)
@@ -823,9 +1030,15 @@ export default function ProductFilters({
         {/* Footer with Apply button */}
         <div className="border-t px-4 py-3 bg-white sticky bottom-0 z-10">
           <button
-            onClick={handleApplyAllFilters}
+            onClick={(e) => handleApplyAllFilters(e)}
+            onTouchStart={(e) => {
+              e.preventDefault()
+              if (hasFilterChanges) {
+                handleApplyAllFilters()
+              }
+            }}
             disabled={!hasFilterChanges}
-            className={`w-full py-3 rounded-md font-medium text-center ${
+            className={`w-full py-3 rounded-md font-medium text-center filter-button ${
               hasFilterChanges ? "bg-teal-600 text-white" : "bg-gray-100 text-gray-400 cursor-not-allowed"
             }`}
           >
@@ -835,6 +1048,28 @@ export default function ProductFilters({
       </div>
     )
 
+  useEffect(() => {
+    // Add passive touch handler to improve mobile performance
+    const drawerElement = drawerRef.current
+
+    const handleTouchMove = (e: TouchEvent) => {
+      // Allow scrolling within the drawer
+      if (drawerElement && drawerElement.contains(e.target as Node)) {
+        e.stopPropagation()
+      }
+    }
+
+    if (drawerElement) {
+      drawerElement.addEventListener("touchmove", handleTouchMove, { passive: true })
+    }
+
+    return () => {
+      if (drawerElement) {
+        drawerElement.removeEventListener("touchmove", handleTouchMove)
+      }
+    }
+  }, [isFilterDrawerOpen])
+
   return (
     <>
       <DesktopFilters />
@@ -842,4 +1077,3 @@ export default function ProductFilters({
     </>
   )
 }
-
