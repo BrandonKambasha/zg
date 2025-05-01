@@ -278,6 +278,12 @@ export default function DeliveryZoneMap({ onZoneChange, initialAddress = {}, for
     e.preventDefault()
     e.stopPropagation()
 
+    // Force close dropdown and unfocus input
+    setShowSuggestions(false)
+    if (addressInputRef.current) {
+      addressInputRef.current.blur()
+    }
+
     if (selectedZone !== null) {
       setZoneConfirmed(true)
       // Notify parent component of zone change, but don't trigger form submission
