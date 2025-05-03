@@ -289,7 +289,6 @@ export default function Header() {
     { icon: <Heart className="h-5 w-5" />, label: "Wishlist", href: "/wishlist" },
     { icon: <User className="h-5 w-5" />, label: "Account", href: "/account" },
     { icon: <Phone className="h-5 w-5" />, label: "Contact", href: "/contact" },
-    { icon: <HelpCircle className="h-5 w-5" />, label: "Help", href: "/help" },
   ]
 
   return (
