@@ -586,19 +586,16 @@ function CheckoutContent() {
                     <div className="bg-gray-50 p-4 rounded-lg">
                       {paymentMethod === "credit_card" && (
                         <div className="flex items-center">
-                          <CreditCard className="h-5 w-5 mr-2 text-teal-600" />
                           <p>Credit/Debit Card (Stripe)</p>
                         </div>
                       )}
                       {paymentMethod === "apple_pay" && (
                         <div className="flex items-center">
-                          <Apple className="h-5 w-5 mr-2 text-teal-600" />
                           <p>Apple Pay (via Stripe)</p>
                         </div>
                       )}
                       {paymentMethod === "google_pay" && (
                         <div className="flex items-center">
-                          <Smartphone className="h-5 w-5 mr-2 text-teal-600" />
                           <p>Google Pay (via Stripe)</p>
                         </div>
                       )}
