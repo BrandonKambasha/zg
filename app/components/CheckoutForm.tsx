@@ -135,6 +135,19 @@ export default function CheckoutForm({ initialValues, onSubmit, isSubmitting }: 
     setZoneConfirmed(zoneIsConfirmed)
     setZoneError(null)
 
+    // Auto-advance to review if zone is confirmed
+    if (zoneIsConfirmed) {
+      setActiveSection("review")
+      setTimeout(() => {
+        const element = document.getElementById("review")
+        if (element) {
+          const yOffset = -20
+          const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset
+          window.scrollTo({ top: y, behavior: "smooth" })
+        }
+      }, 100)
+    }
+
     // Reset the flag after a short delay
     setTimeout(() => {
       setIsZoneUpdate(false)
@@ -969,22 +982,13 @@ export default function CheckoutForm({ initialValues, onSubmit, isSubmitting }: 
                         </div>
                       </div>
                     )}
-
-                    <div className="mt-6 flex justify-between">
+                    <div className="mt-6 flex justify-start">
                       <button
                         type="button"
                         onClick={() => setActiveSection("zimbabwe")}
                         className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
                       >
                         Back
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setActiveSection("review")}
-                        className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-md font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled={!deliveryZone || !zoneConfirmed}
-                      >
-                        Continue to Review
                       </button>
                     </div>
                   </div>

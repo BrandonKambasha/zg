@@ -1,20 +1,25 @@
 "use client"
 
 import { useState } from "react"
-import { CreditCard, Apple, Smartphone } from "lucide-react"
-import Image from "next/image";
+import Image from "next/image"
 
+// Update the component to accept and use the selectedMethod prop
 interface PaymentMethodSelectorProps {
   onSelect: (method: string) => void
   isSubmitting: boolean
+  selectedMethod?: string
 }
 
-export default function PaymentMethodSelector({ onSelect, isSubmitting }: PaymentMethodSelectorProps) {
-  const [paymentMethod, setPaymentMethod] = useState("credit_card")
+export default function PaymentMethodSelector({
+  onSelect,
+  isSubmitting,
+  selectedMethod = "credit_card",
+}: PaymentMethodSelectorProps) {
+  const [paymentMethod, setPaymentMethod] = useState(selectedMethod)
 
   const handleMethodChange = (method: string) => {
     setPaymentMethod(method)
-    onSelect("credit_card") // Always use credit_card as method since all go to Stripe
+    onSelect(method) // Pass the actual selected method, not hardcoded "credit_card"
   }
 
   return (
@@ -37,7 +42,7 @@ export default function PaymentMethodSelector({ onSelect, isSubmitting }: Paymen
                 className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300"
               />
               <label htmlFor="credit_card" className="ml-2 flex items-center cursor-pointer">
-              <Image src="/images/visa.png" alt="Apple Pay" width={60} height={60} className="mr-2" />
+                <Image src="/images/visa.png" alt="Credit/Debit Card" width={60} height={60} className="mr-2" />
                 <span>Credit/Debit Card</span>
               </label>
             </div>
@@ -59,8 +64,8 @@ export default function PaymentMethodSelector({ onSelect, isSubmitting }: Paymen
                 className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300"
               />
               <label htmlFor="apple_pay" className="ml-2 flex items-center cursor-pointer">
-              <Image src="/images/apple.png" alt="Apple Pay" width={60} height={60} className="mr-2" />
-              <span>Apple Pay</span>
+                <Image src="/images/apple.png" alt="Apple Pay" width={60} height={60} className="mr-2" />
+                <span>Apple Pay</span>
               </label>
             </div>
           </div>
@@ -81,7 +86,7 @@ export default function PaymentMethodSelector({ onSelect, isSubmitting }: Paymen
                 className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300"
               />
               <label htmlFor="google_pay" className="ml-2 flex items-center cursor-pointer">
-              <Image src="/images/google.webp" alt="Apple Pay" width={50} height={50} className="mr-2" />
+                <Image src="/images/google.webp" alt="Google Pay" width={50} height={50} className="mr-2" />
                 <span>Google Pay</span>
               </label>
             </div>
@@ -93,12 +98,20 @@ export default function PaymentMethodSelector({ onSelect, isSubmitting }: Paymen
         <div className="bg-blue-50 p-4 rounded-md">
           <p className="text-sm">
             You'll be redirected to Stripe's secure payment page to complete your payment.
-            {paymentMethod === "apple_pay" &&   <>Apple Pay will be available on the payment page, <strong>if your device supports Apple Pay</strong></>}
-            {paymentMethod === "google_pay" && <> Google Pay will be available on the payment page, <strong>if your device supports Google pay</strong></>}
+            {paymentMethod === "apple_pay" && (
+              <>
+                Apple Pay will be available on the payment page, <strong>if your device supports Apple Pay</strong>
+              </>
+            )}
+            {paymentMethod === "google_pay" && (
+              <>
+                {" "}
+                Google Pay will be available on the payment page, <strong>if your device supports Google pay</strong>
+              </>
+            )}
           </p>
         </div>
       </div>
     </div>
   )
 }
-
