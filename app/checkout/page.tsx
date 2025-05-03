@@ -274,56 +274,27 @@ function CheckoutContent() {
   }
 
   const handlePlaceOrder = async () => {
-    // If we're in step 3 (review) and need to go to payment, just navigate directly
-    if (step === 3 && paymentMethod === "credit_card") {
-      // Skip the form submission and go directly to Stripe
-      setIsSubmitting(true)
-      try {
-        const newOrderId = await handleCreateOrder()
+    // Always use Stripe checkout regardless of the selected payment method
+    // This allows us to show different payment methods in the UI but always use Stripe
+    setIsSubmitting(true)
+    try {
+      const newOrderId = await handleCreateOrder()
 
-        // Create Stripe Checkout session
-        const data = await createCheckoutSession(newOrderId)
+      // Create Stripe Checkout session
+      const data = await createCheckoutSession(newOrderId)
 
-        if (!data.checkout_url) {
-          throw new Error("Failed to create checkout session")
-        }
-
-        // Redirect to Stripe Checkout
-        window.location.href = data.checkout_url
-      } catch (error) {
-        console.error("Failed to process payment:", error)
-        toast.error("Failed to process payment. Please try again.")
-        setIsSubmitting(false)
+      if (!data.checkout_url) {
+        throw new Error("Failed to create checkout session")
       }
-      return
+
+      // Redirect to Stripe Checkout
+      window.location.href = data.checkout_url
+    } catch (error) {
+      console.error("Failed to process payment:", error)
+      toast.error("Failed to process payment. Please try again.")
+      setIsSubmitting(false)
     }
-
-    // For non-credit card payments, proceed with the original flow
-    if (paymentMethod !== "credit_card") {
-      setIsSubmitting(true)
-
-      try {
-        // For non-Stripe payment methods
-        const newOrderId = await handleCreateOrder()
-
-        // Clear the cart
-        clearCart()
-
-        // Show success message
-        toast.success("Order placed successfully!")
-
-        // Set flag in session storage to indicate order completion
-        sessionStorage.setItem("orderCompleted", "true")
-
-        // Redirect to order confirmation
-        router.push("/checkout/confirmation")
-      } catch (error) {
-        console.error("Failed to place order:", error)
-        toast.error("Failed to place order. Please try again.")
-      } finally {
-        setIsSubmitting(false)
-      }
-    }
+    return
   }
 
   // Don't render anything until client-side hydration is complete
@@ -687,19 +658,13 @@ function CheckoutContent() {
                           </svg>
                           Processing...
                         </span>
-                      ) : paymentMethod === "credit_card" ? (
-                        "Continue to Payment"
                       ) : (
-                        "Place Order"
+                        "Continue to Payment"
                       )}
                     </button>
                     <div className="flex items-center justify-center mt-4 text-sm text-gray-500">
                       <ShieldCheck className="h-4 w-4 mr-1" />
-                      <span>
-                        {paymentMethod === "credit_card"
-                          ? "You'll be redirected to Stripe's secure payment page"
-                          : "Your payment information is secure"}
-                      </span>
+                      <span>You'll be redirected to Stripe's secure payment page</span>
                     </div>
                   </div>
                 </div>
