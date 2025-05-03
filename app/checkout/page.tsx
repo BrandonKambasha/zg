@@ -251,13 +251,14 @@ function CheckoutContent() {
         shipping_address: `${shippingInfo.house_number}, ${shippingInfo.city}, ${shippingInfo.street}, ${shippingInfo.location}, ${shippingInfo.country}`,
         zim_contact: shippingInfo.zim_contact,
         phone_number: shippingInfo.phone,
-        payment_method: paymentMethod,
+        payment_method: "credit_card", // Always use credit_card for Stripe
         zim_name: shippingInfo.zim_name,
         delivery_zone:
           shippingInfo.exact_fee ||
           (shippingInfo.delivery_zone ? getShippingCost(shippingInfo.delivery_zone, null) : SHIPPING_COST),
         exact_distance: shippingInfo.exact_distance,
         exact_fee: shippingInfo.exact_fee,
+        skip_confirmation_email: true, // Add this flag to prevent sending email immediately
       }
       console.log("Creating order with data:", JSON.stringify(orderData, null, 2))
 
@@ -585,16 +586,19 @@ function CheckoutContent() {
                     <div className="bg-gray-50 p-4 rounded-lg">
                       {paymentMethod === "credit_card" && (
                         <div className="flex items-center">
+                          <CreditCard className="h-5 w-5 mr-2 text-teal-600" />
                           <p>Credit/Debit Card (Stripe)</p>
                         </div>
                       )}
                       {paymentMethod === "apple_pay" && (
                         <div className="flex items-center">
+                          <Apple className="h-5 w-5 mr-2 text-teal-600" />
                           <p>Apple Pay (via Stripe)</p>
                         </div>
                       )}
                       {paymentMethod === "google_pay" && (
                         <div className="flex items-center">
+                          <Smartphone className="h-5 w-5 mr-2 text-teal-600" />
                           <p>Google Pay (via Stripe)</p>
                         </div>
                       )}
