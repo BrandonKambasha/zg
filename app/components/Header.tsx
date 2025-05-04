@@ -15,8 +15,8 @@ import {
   Package,
   Info,
   Phone,
-  HelpCircle,
   ShoppingCart,
+  MessageSquare,
 } from "lucide-react"
 import Image from "next/image"
 import { getCategories } from "../lib/api/categories"
@@ -26,7 +26,6 @@ import WishlistIcon from "./WishlistIcon"
 import { useRouter, usePathname } from "next/navigation"
 import { searchItems, type SearchResult } from "../lib/api/search"
 import { useDebounce } from "../hooks/useDebounce"
-import ResetAppStateButton from "./ResetAppStateButton"
 import { useAuth } from "../hooks/useAuth"
 import toast from "react-hot-toast"
 import { motion, AnimatePresence } from "framer-motion"
@@ -289,6 +288,7 @@ export default function Header() {
     { icon: <Heart className="h-5 w-5" />, label: "Wishlist", href: "/wishlist" },
     { icon: <User className="h-5 w-5" />, label: "Account", href: "/account" },
     { icon: <Phone className="h-5 w-5" />, label: "Contact", href: "/contact" },
+    { icon: <MessageSquare className="h-5 w-5" />, label: "Feedback", href: "/feedback" },
   ]
 
   return (
@@ -466,8 +466,14 @@ export default function Header() {
 
               <CartIcon />
 
-              {/* Add Reset App State Button */}
-              <ResetAppStateButton />
+              {/* Colorful Feedback Button */}
+              <Link
+                href="/feedback"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-gradient-to-r from-zimbabwe-green via-zimbabwe-yellow to-zimbabwe-red text-white font-medium text-sm hover:shadow-md transition-all hover:-translate-y-0.5"
+              >
+                <MessageSquare className="h-4 w-4" />
+                <span>Feedback</span>
+              </Link>
             </div>
 
             {/* Mobile Menu Button and Quick Actions */}
@@ -615,7 +621,7 @@ export default function Header() {
       {/* Mobile Menu Modal - Fixed position to work when scrolled */}
       <AnimatePresence>
         {showMobileMenu && (
-          <div className="fixed inset-0 z-[9999] md:hidden" aria-modal="true" role="dialog" aria-label="Main Menu">
+          <div className="fixed inset-0 z-[9999] lg:hidden" aria-modal="true" role="dialog" aria-label="Main Menu">
             {/* Backdrop - Changed to blurred background */}
             <motion.div
               initial={{ opacity: 0 }}
