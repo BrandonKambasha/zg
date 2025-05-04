@@ -22,7 +22,13 @@ interface Feedback extends FeedbackData {
 
 export const submitFeedback = async (data: FeedbackData): Promise<Feedback> => {
   try {
-    const response = await axios.post("/feedback", data)
+    // Ensure user_id is properly formatted and included in the request
+    const formattedData = {
+      ...data,
+      user_id: data.user_id ? String(data.user_id) : undefined,
+    }
+
+    const response = await axios.post("/feedback", formattedData)
     return response.data
   } catch (error: any) {
     throw new Error(error.response?.data?.message || "Failed to submit feedback")

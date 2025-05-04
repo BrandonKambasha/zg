@@ -129,10 +129,15 @@ export default function FeedbackClientPage() {
     setIsSubmitting(true)
 
     try {
-      await submitFeedback({
+      // Always include the user_id if the user is authenticated
+      const feedbackData = {
         ...formData,
         user_id: user?.id ? String(user.id) : undefined,
-      })
+      }
+
+      console.log("Submitting feedback with data:", feedbackData)
+
+      await submitFeedback(feedbackData)
 
       toast.success("Thank you for your feedback!")
       setSubmitted(true)
@@ -351,7 +356,7 @@ export default function FeedbackClientPage() {
                         <AlertCircle className="h-4 w-4" /> You are submitting as:
                       </AlertTitle>
                       <AlertDescription className="text-teal-700">
-                        {user.name} ({user.email})
+                        {user.name} ({user.email}){user.id && <div className="text-xs mt-1">User ID: {user.id}</div>}
                       </AlertDescription>
                     </Alert>
                   )}
