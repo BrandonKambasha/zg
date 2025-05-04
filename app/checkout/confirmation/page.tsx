@@ -4,11 +4,22 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
-import { CheckCircle, Package, ArrowRight, ShoppingBag, Calendar, MapPin, Truck } from "lucide-react"
+import {
+  CheckCircle,
+  Package,
+  ArrowRight,
+  ShoppingBag,
+  Calendar,
+  MapPin,
+  Truck,
+  Star,
+  MessageSquare,
+} from "lucide-react"
 import { useCart } from "../../hooks/useCart"
 import { getLatestOrder } from "../../lib/api/orders"
 import type { Order, OrderItem } from "../../Types"
 import { apiBaseUrl } from "../../lib/axios"
+import { motion } from "framer-motion"
 
 export default function OrderConfirmationPage() {
   const router = useRouter()
@@ -123,7 +134,8 @@ export default function OrderConfirmationPage() {
             Your order has been placed successfully. We've sent a confirmation email with your order details.
           </p>
           <p className="text-gray-600 mb-2">
-            📩 Important: The email might land in your spam or junk folder, especially if its your first time ordering with us — please check there to make sure you dont miss any updates!
+            📩 Important: The email might land in your spam or junk folder, especially if its your first time ordering
+            with us — please check there to make sure you dont miss any updates!
           </p>
           {order && (
             <p className="text-gray-600">
@@ -336,6 +348,40 @@ export default function OrderConfirmationPage() {
                 </p>
               </div>
             </div>
+
+            {/* Feedback Request Section - New Addition */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5, duration: 0.6 }}
+              className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-lg p-6 mb-8"
+            >
+              <div className="flex flex-col md:flex-row items-center">
+                <div className="flex-shrink-0 mb-4 md:mb-0 md:mr-6 text-center md:text-left">
+                  <div className="flex justify-center md:justify-start">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star key={star} className="h-6 w-6 text-amber-400 fill-amber-400" />
+                    ))}
+                  </div>
+                  <h3 className="font-medium text-gray-800 mt-2 text-lg">How was your experience?</h3>
+                </div>
+                <div className="flex-grow">
+                  <p className="text-gray-700 text-center md:text-left mb-4">
+                    Your feedback helps us improve our products and service. We'd love to hear about your shopping
+                    experience!
+                  </p>
+                  <div className="flex justify-center md:justify-start">
+                    <Link
+                      href="/feedback"
+                      className="inline-flex items-center px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-md transition-colors shadow-sm"
+                    >
+                      <MessageSquare className="h-4 w-4 mr-2" />
+                      Share Your Feedback
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
           </>
         )}
 
@@ -358,4 +404,3 @@ export default function OrderConfirmationPage() {
     </div>
   )
 }
-
