@@ -356,7 +356,7 @@ export default function FeedbackClientPage() {
                         <AlertCircle className="h-4 w-4" /> You are submitting as:
                       </AlertTitle>
                       <AlertDescription className="text-teal-700">
-                        {user.name} ({user.email}){user.id && <div className="text-xs mt-1">User ID: {user.id}</div>}
+                        {user.name} ({user.email})
                       </AlertDescription>
                     </Alert>
                   )}
