@@ -347,7 +347,7 @@ export default function OrderConfirmationPage() {
             View Order History
           </Link>
           <Link
-            href="/"
+            href="/products"
             className="bg-white border border-gray-300 text-gray-700 px-6 py-3 rounded-md hover:bg-gray-50 transition flex items-center justify-center"
           >
             Continue Shopping
