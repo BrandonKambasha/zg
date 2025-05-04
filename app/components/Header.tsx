@@ -409,7 +409,7 @@ export default function Header() {
                                 src={
                                   result.image_url.startsWith("http")
                                     ? result.image_url
-                                    : `http://192.168.0.123:8000${result.image_url}`
+                                    : `${process.env.NEXT_PUBLIC_API_URL}${result.image_url}`
                                 }
                                 alt={result.name}
                                 fill
@@ -466,10 +466,10 @@ export default function Header() {
 
               <CartIcon />
 
-              {/* Colorful Feedback Button */}
+              {/* Colorful Feedback Button - FIXED */}
               <Link
                 href="/feedback"
-                className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-gradient-to-r from-zimbabwe-green via-zimbabwe-yellow to-zimbabwe-red text-white font-medium text-sm hover:shadow-md transition-all hover:-translate-y-0.5"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-gradient-to-r from-teal-600 via-amber-500 to-red-600 text-white font-medium text-sm hover:shadow-md transition-all hover:-translate-y-0.5 border border-white/20"
               >
                 <MessageSquare className="h-4 w-4" />
                 <span>Feedback</span>
@@ -580,7 +580,7 @@ export default function Header() {
                           src={
                             result.image_url.startsWith("http")
                               ? result.image_url
-                              : `http://192.168.0.123:8000${result.image_url}`
+                              : `${process.env.NEXT_PUBLIC_API_URL}${result.image_url}`
                           }
                           alt={result.name}
                           fill
