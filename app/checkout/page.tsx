@@ -13,8 +13,6 @@ import {
   ShieldCheck,
   CheckCircle2,
   ArrowRight,
-  Apple,
-  Smartphone,
   ShoppingBag,
   Package,
   CreditCardIcon as PaymentIcon,
@@ -101,6 +99,7 @@ function CheckoutContent() {
   const [redirecting, setRedirecting] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [showMobileOrderSummary, setShowMobileOrderSummary] = useState(false)
+  const [instructions, setInstructions] = useState("")
 
   // Function to ensure image URLs have the API prefix
   const getFullImageUrl = (url: string | undefined): string => {
@@ -259,6 +258,7 @@ function CheckoutContent() {
         exact_distance: shippingInfo.exact_distance,
         exact_fee: shippingInfo.exact_fee,
         skip_confirmation_email: true, // Add this flag to prevent sending email immediately
+        instructions: instructions.trim() || null, // Add instructions to the order data
       }
       console.log("Creating order with data:", JSON.stringify(orderData, null, 2))
 
@@ -624,6 +624,25 @@ function CheckoutContent() {
                             <div className="font-medium">${(item.product.price * item.quantity).toFixed(2)}</div>
                           </div>
                         ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Order Instructions */}
+                  <div>
+                    <h3 className="font-medium text-lg mb-3">
+                      Order Instructions <span className="text-sm font-normal text-gray-500">(Optional)</span>
+                    </h3>
+                    <div className="border border-gray-200 rounded-lg overflow-hidden">
+                      <textarea
+                        value={instructions}
+                        onChange={(e) => setInstructions(e.target.value)}
+                        placeholder="Add any special instructions or notes for your order (e.g., delivery preferences, allergy information, etc.)"
+                        className="w-full p-4 min-h-[100px] text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 resize-y"
+                        maxLength={500}
+                      />
+                      <div className="bg-gray-50 px-4 py-2 text-right">
+                        <span className="text-xs text-gray-500">{instructions.length}/500 characters</span>
                       </div>
                     </div>
                   </div>
