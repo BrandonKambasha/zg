@@ -60,6 +60,8 @@ export default function CheckoutForm({ initialValues, onSubmit, isSubmitting }: 
     resolver: zodResolver(shippingSchema),
     defaultValues: {
       ...initialValues,
+      city: "Harare",
+      country: "Zimbabwe",
       delivery_zone: null,
       exact_distance: null,
       exact_fee: null,
@@ -98,7 +100,7 @@ export default function CheckoutForm({ initialValues, onSubmit, isSubmitting }: 
 
   // Show map when address fields are filled and country is Zimbabwe
   useEffect(() => {
-    if (house_number && street && city && country === "Zimbabwe") {
+    if (house_number && street && city) {
       setShowMap(true)
     } else {
       setShowMap(false)
@@ -110,7 +112,7 @@ export default function CheckoutForm({ initialValues, onSubmit, isSubmitting }: 
       setValue("exact_fee", null)
       setZoneConfirmed(false)
     }
-  }, [house_number, street, city, location, country, setValue])
+  }, [house_number, street, city, location, setValue])
 
   // Handle zone change from the map
   const handleZoneChange = (zone: number | null, distance: number | null, fee: number | null) => {
@@ -570,21 +572,13 @@ export default function CheckoutForm({ initialValues, onSubmit, isSubmitting }: 
                         <input
                           id="city"
                           type="text"
+                          value="Harare"
+                          readOnly
                           {...register("city")}
-                          className={`w-full pl-10 p-2.5 border rounded-md focus:outline-none focus:ring-2 transition-colors ${
-                            errors.city
-                              ? "border-red-300 focus:ring-red-500"
-                              : "border-gray-300 focus:ring-teal-500 focus:border-teal-500"
-                          }`}
-                          placeholder="Harare"
+                          className="w-full pl-10 p-2.5 border rounded-md bg-gray-50 cursor-not-allowed"
                         />
                       </div>
-                      {errors.city && (
-                        <p className="text-red-500 text-sm mt-1 flex items-center">
-                          <AlertCircle className="h-3.5 w-3.5 mr-1" />
-                          {errors.city.message}
-                        </p>
-                      )}
+                      <p className="text-xs text-gray-500">Delivery is only available in Harare</p>
                     </div>
 
                     <div className="space-y-2 md:col-span-2">
@@ -595,30 +589,16 @@ export default function CheckoutForm({ initialValues, onSubmit, isSubmitting }: 
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
                           <Globe className="h-4 w-4 text-gray-400" />
                         </div>
-                        <select
+                        <input
                           id="country"
+                          type="text"
+                          value="Zimbabwe"
+                          readOnly
                           {...register("country")}
-                          className="w-full pl-10 p-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none bg-white"
-                          defaultValue={getValues("country") || "Zimbabwe"}
-                        >
-                          <option value="Zimbabwe">Zimbabwe</option>
-                          <option value="South Africa">South Africa</option>
-                          <option value="United States">United States</option>
-                          <option value="United Kingdom">United Kingdom</option>
-                          <option value="Canada">Canada</option>
-                          <option value="Australia">Australia</option>
-                          <option value="Other">Other</option>
-                        </select>
-                        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                          <ChevronDown className="h-4 w-4 text-gray-400" />
-                        </div>
+                          className="w-full pl-10 p-2.5 border border-gray-300 rounded-md bg-gray-50 cursor-not-allowed"
+                        />
                       </div>
-                      {errors.country && (
-                        <p className="text-red-500 text-sm mt-1 flex items-center">
-                          <AlertCircle className="h-3.5 w-3.5 mr-1" />
-                          {errors.country.message}
-                        </p>
-                      )}
+                      <p className="text-xs text-gray-500">We currently only deliver within Zimbabwe</p>
                     </div>
                   </div>
 
