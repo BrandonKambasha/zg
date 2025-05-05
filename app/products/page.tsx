@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { getProducts } from "../lib/api/products"
 import { getCategories } from "../lib/api/categories"
-import { ShoppingCart, Loader2, Heart, Search, Package, ChevronDown, X, Filter, ArrowUpDown, Star } from "lucide-react"
+import { ShoppingCart, Loader2, Heart, Search, Package, ChevronDown, X, Filter, ArrowUpDown } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import type { Product, Category } from "../Types"
 import useCart from "../hooks/useCart"
@@ -307,16 +307,16 @@ export default function ProductsPage() {
         <h2 className="text-2xl font-bold text-gray-900 mb-4 md:hidden">All Products</h2>
 
         {/* Product Count and Filters/Sort - Mobile */}
-        <div className="bg-white rounded-lg p-4 mb-6 md:hidden">
+        <div className="bg-white rounded-lg p-2 mb-4 md:hidden sticky top-[70px] z-20 shadow-sm border-b border-gray-100">
           <div className="flex justify-between items-center">
-            <div className="text-gray-700 font-medium">{filteredProducts.length} products found</div>
+            <div className="text-gray-700 text-sm">{filteredProducts.length} products</div>
             <div className="flex gap-2">
               <button
                 onClick={openMobileFilters}
                 onTouchStart={openMobileFilters}
-                className="flex items-center justify-center gap-1 border border-gray-300 rounded-lg px-4 py-2 bg-white"
+                className="flex items-center justify-center gap-1 border border-gray-300 rounded-lg px-3 py-1.5 bg-white text-sm"
               >
-                <Filter className="h-4 w-4" />
+                <Filter className="h-3.5 w-3.5" />
                 <span>Filters</span>
               </button>
 
@@ -328,9 +328,9 @@ export default function ProductsPage() {
                     e.stopPropagation()
                     setShowMobileSort(!showMobileSort)
                   }}
-                  className="flex items-center justify-center gap-1 border border-gray-300 rounded-lg px-4 py-2 bg-white"
+                  className="flex items-center justify-center gap-1 border border-gray-300 rounded-lg px-3 py-1.5 bg-white text-sm"
                 >
-                  <ArrowUpDown className="h-4 w-4" />
+                  <ArrowUpDown className="h-3.5 w-3.5" />
                   <span>Sort</span>
                 </button>
 
@@ -555,7 +555,6 @@ export default function ProductsPage() {
                         <div className="text-xs font-medium px-2 py-0.5 bg-teal-50 text-teal-700 rounded-full">
                           {getCategoryName(product.category_id) || "Uncategorized"}
                         </div>
-                        
                       </div>
                       <Link
                         href={`/products/${product.id}`}
@@ -568,10 +567,7 @@ export default function ProductsPage() {
                       </Link>
                       <div className="flex items-center justify-between">
                         <div className="flex flex-col">
-                          <span className="text-teal-700 font-bold text-base md:text-lg">
-                            ${product.price}
-                          </span>
-                          
+                          <span className="text-teal-700 font-bold text-base md:text-lg">${product.price}</span>
                         </div>
                         <button
                           onClick={(e) => handleAddToCart(product, e)}
