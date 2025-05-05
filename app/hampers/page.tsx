@@ -16,7 +16,9 @@ import {
   Package,
   ShoppingBag,
   FolderHeart,
+  Search,
 } from "lucide-react"
+import { motion } from "framer-motion"
 import type { Hamper, Category } from "../Types"
 import useCart from "../hooks/useCart"
 import { useWishlist } from "../hooks/useWishlist"
@@ -36,7 +38,7 @@ export default function HampersPage() {
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1)
-  const hampersPerPage = 5
+  const hampersPerPage = 6 // Increased from 5 to 6 for better grid layout
 
   useEffect(() => {
     async function fetchData() {
@@ -60,7 +62,7 @@ export default function HampersPage() {
 
   // Function to get full image URL with API prefix
   const getFullImageUrl = (url: string | undefined): string => {
-    if (!url) return "/placeholder.svg"
+    if (!url) return "/placeholder.svg?height=300&width=300"
     return url.startsWith("http") ? url : `${apiBaseUrl}${url}`
   }
 
@@ -81,16 +83,24 @@ export default function HampersPage() {
     event.preventDefault()
     event.stopPropagation()
 
+    // Check if user is authenticated first
+    if (!isAuthenticated) {
+      toast.error("Please login to add items to your wishlist")
+      return
+    }
+
     try {
       if (isInWishlist(hamper.id, "hamper")) {
         const wishlistItemId = getWishlistItemId(hamper.id, "hamper")
         await removeFromWishlist(wishlistItemId)
+        toast.success(`${hamper.name} removed from wishlist`)
       } else {
         await addToWishlist(hamper, "hamper")
+        toast.success(`${hamper.name} added to wishlist`)
       }
     } catch (error) {
-      // Silent error handling - no toast notifications here
       console.error("Wishlist operation failed:", error)
+      toast.error("Failed to update wishlist")
     }
   }
 
@@ -131,52 +141,85 @@ export default function HampersPage() {
   }
 
   return (
-    <div>
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-teal-900 via-teal-800 to-teal-900 text-white">
+    <div className="min-h-screen">
+      {/* Hero Section - Reduced size and styled similar to products page */}
+      <section className="relative bg-gradient-to-r from-teal-600 to-teal-800 text-white overflow-hidden">
         <div className="absolute inset-0 opacity-20">
-          <div
-            className="absolute inset-0"
-            style={{
-              backgroundImage: "url('/placeholder.svg?height=600&width=1200')",
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              filter: "blur(2px)",
-            }}
-          ></div>
+          <div className="absolute inset-0 bg-pattern opacity-10"></div>
         </div>
 
-        <div className="container mx-auto px-4 py-12 md:py-20 relative z-10">
-          <div className="max-w-3xl mx-auto text-center">
-            <h1 className="text-3xl md:text-5xl font-bold mb-4 leading-tight">Exquisite Gift Hampers</h1>
-            <p className="text-lg md:text-xl text-teal-50 mb-8 max-w-2xl mx-auto">
-              Send quality products from Zimbabwean stores directly to your loved ones in Zimbabwe.
-            </p>
+        {/* Animated elements */}
+        <div className="absolute -bottom-3 left-1/4 transform -translate-x-1/2">
+          <motion.div
+            initial={{ y: 50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+          >
+            <Package className="h-16 w-16 text-white opacity-10" />
+          </motion.div>
+        </div>
 
-            <button
-              onClick={scrollToHampers}
-              className="px-6 py-3 bg-white text-teal-800 rounded-full font-medium hover:bg-teal-50 transition-colors shadow-md"
+        <div className="absolute -top-3 right-1/4 transform translate-x-1/2 rotate-12">
+          <motion.div
+            initial={{ y: -50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
+          >
+            <ShoppingBag className="h-12 w-12 text-white opacity-10" />
+          </motion.div>
+        </div>
+
+        <div className="container mx-auto px-4 py-6 md:py-8 relative z-10">
+          <div className="max-w-3xl mx-auto text-center">
+            <motion.h1
+              className="text-2xl md:text-3xl font-bold mb-2"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
             >
-              Shop Hampers
-            </button>
+              Hampers
+            </motion.h1>
+            <motion.p
+              className="text-base md:text-lg mb-4 text-teal-50"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+            >
+              Send quality products from Zimbabwe directly to your loved ones
+            </motion.p>
+
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                onClick={scrollToHampers}
+                className="flex items-center justify-center gap-2 bg-teal-700/30 backdrop-blur-sm text-white py-2 px-4 rounded-lg border border-teal-600/50 hover:bg-teal-700/40 transition-colors"
+              >
+                <Search className="h-4 w-4" />
+                <span className="font-medium">Browse Hampers</span>
+              </button>
+              <Link
+                href="/hampers/build"
+                className="flex items-center justify-center gap-2 bg-white text-teal-800 py-2 px-4 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <PlusCircle className="h-4 w-4" />
+                <span className="font-medium">Build Your Own</span>
+              </Link>
+            </div>
           </div>
         </div>
-
-        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white to-transparent"></div>
       </section>
 
       {/* Build Your Own Hamper - Enhanced with My Hampers button */}
-      <section className="container mx-auto px-4 py-8">
+      <section className="container mx-auto px-4 py-6">
         <div className="bg-gradient-to-r from-teal-600 to-teal-700 rounded-lg overflow-hidden shadow-md">
-          <div className="flex flex-col md:flex-row md:items-center justify-between p-5">
+          <div className="flex flex-col md:flex-row md:items-center justify-between p-4">
             <div className="text-white mb-4 md:mb-0">
               <div className="flex items-center">
                 <PlusCircle className="h-5 w-5 mr-2" />
-                <h2 className="text-xl font-bold">Build Your Own Hamper</h2>
+                <h2 className="text-lg font-bold">Build Your Own Hamper</h2>
               </div>
               <div className="flex items-center mt-1">
                 <Calendar className="h-4 w-4 mr-2 text-teal-200" />
-                <p className="text-teal-100">Create a custom gift with optional monthly delivery</p>
+                <p className="text-teal-100 text-sm">Create a custom gift with optional monthly delivery</p>
               </div>
             </div>
 
@@ -199,12 +242,12 @@ export default function HampersPage() {
               </Link>
             </div>
           </div>
-          <div className="h-1.5 w-full bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400"></div>
+          <div className="h-1 w-full bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400"></div>
         </div>
       </section>
 
       {/* Hamper Categories and Listing */}
-      <section ref={hampersRef} id="hampers-section" className="container mx-auto px-4 py-8">
+      <section ref={hampersRef} id="hampers-section" className="container mx-auto px-4 py-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900 mb-4 md:mb-0">Our Gift Hampers</h2>
 
@@ -238,7 +281,7 @@ export default function HampersPage() {
         </div>
 
         {filteredHampers.length === 0 ? (
-          <div className="bg-gray-50 rounded-xl p-8 text-center">
+          <div className="bg-white rounded-xl p-8 text-center shadow-sm border border-gray-100">
             <h3 className="text-xl font-medium text-gray-800 mb-3">No Hampers Found</h3>
             <p className="text-gray-600 mb-6">
               {selectedCategory
@@ -257,11 +300,11 @@ export default function HampersPage() {
         ) : (
           <>
             {/* Desktop Hamper Grid */}
-            <div className="hidden md:grid md:grid-cols-2 gap-6">
+            <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-4">
               {currentHampers.map((hamper) => (
                 <Link key={hamper.id} href={`/hampers/${hamper.id}`} className="group">
                   <div className="flex bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 h-full border border-gray-100">
-                    <div className="relative h-40 w-40 md:h-48 md:w-48 flex-shrink-0">
+                    <div className="relative h-36 w-36 flex-shrink-0">
                       <img
                         src={getFullImageUrl(hamper.image_url) || "/placeholder.svg"}
                         alt={hamper.name}
@@ -293,8 +336,8 @@ export default function HampersPage() {
                       </button>
                     </div>
 
-                    <div className="p-4 flex-grow flex flex-col relative">
-                      <h3 className="text-lg font-semibold text-gray-800 group-hover:text-teal-600 transition-colors mb-1">
+                    <div className="p-3 flex-grow flex flex-col relative">
+                      <h3 className="text-base font-semibold text-gray-800 group-hover:text-teal-600 transition-colors mb-1 line-clamp-1">
                         {hamper.name}
                       </h3>
 
@@ -307,7 +350,7 @@ export default function HampersPage() {
                         </div>
                       )}
 
-                      <p className="text-gray-600 text-sm mb-3 line-clamp-2">{hamper.description}</p>
+                      <p className="text-gray-600 text-xs mb-2 line-clamp-2">{hamper.description}</p>
 
                       {hamper.products && hamper.products.length > 0 && (
                         <div className="mb-2">
@@ -331,18 +374,18 @@ export default function HampersPage() {
                       )}
 
                       <div className="mt-auto flex items-center justify-between">
-                        <span className="text-xl font-bold text-teal-600">${hamper.price}</span>
+                        <span className="text-lg font-bold text-teal-600">${hamper.price}</span>
 
                         <button
                           onClick={(e) => handleAddToCart(hamper, e)}
                           disabled={hamper.stock_quantity === 0}
-                          className={`flex items-center px-4 py-2.5 rounded-md text-sm font-medium ${
+                          className={`flex items-center px-3 py-1.5 rounded-md text-xs font-medium ${
                             hamper.stock_quantity === 0
                               ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                               : "bg-teal-600 text-white hover:bg-teal-700 shadow-sm"
                           }`}
                         >
-                          <ShoppingCart className="h-4 w-4 mr-2" />
+                          <ShoppingCart className="h-4 w-4 mr-1.5" />
                           Add to Cart
                         </button>
                       </div>
@@ -356,15 +399,15 @@ export default function HampersPage() {
             <div className="md:hidden">
               <div className="grid grid-cols-2 gap-3">
                 {currentHampers.map((hamper, index) => {
-                  // Determine if this is a featured hamper (first item or every 5th item)
-                  const isFeatured = index === 0 || (index + 1) % 5 === 0
+                  // Determine if this is a featured hamper (first item or every 4th item)
+                  const isFeatured = index === 0 || (index + 1) % 4 === 0
 
                   return (
                     <div key={hamper.id} className={`${isFeatured ? "col-span-2" : "col-span-1"}`}>
                       <Link href={`/hampers/${hamper.id}`} className="block h-full">
                         <div className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 h-full border border-gray-100 flex flex-col">
                           {/* Image section */}
-                          <div className={`relative ${isFeatured ? "h-48" : "h-32"}`}>
+                          <div className={`relative ${isFeatured ? "h-40" : "h-32"}`}>
                             <img
                               src={getFullImageUrl(hamper.image_url) || "/placeholder.svg"}
                               alt={hamper.name}
@@ -428,14 +471,14 @@ export default function HampersPage() {
 
                               {hamper.products && hamper.products.length > 0 ? (
                                 <ul className="text-xs text-gray-500 pl-5 list-disc space-y-0.5">
-                                  {hamper.products.slice(0, isFeatured ? 4 : 2).map((product) => (
+                                  {hamper.products.slice(0, isFeatured ? 3 : 2).map((product) => (
                                     <li key={product.id} className="line-clamp-1">
                                       {product.name} {product.pivot?.quantity > 1 ? `(${product.pivot.quantity})` : ""}
                                     </li>
                                   ))}
-                                  {hamper.products.length > (isFeatured ? 4 : 2) && (
+                                  {hamper.products.length > (isFeatured ? 3 : 2) && (
                                     <li className="text-teal-600">
-                                      +{hamper.products.length - (isFeatured ? 4 : 2)} more items
+                                      +{hamper.products.length - (isFeatured ? 3 : 2)} more items
                                     </li>
                                   )}
                                 </ul>
@@ -535,31 +578,31 @@ export default function HampersPage() {
         )}
       </section>
 
-      {/* Call to Action */}
-      <section className="bg-teal-800 text-white py-12 md:py-16">
+      {/* Call to Action - Made more compact */}
+      <section className="bg-gradient-to-r from-teal-700 to-teal-800 text-white py-8 mt-8">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-2xl md:text-3xl font-bold mb-4">Ready to Delight Someone Special?</h2>
-          <p className="text-teal-100 mb-8 max-w-2xl mx-auto">
+          <h2 className="text-xl md:text-2xl font-bold mb-3">Ready to Delight Someone Special?</h2>
+          <p className="text-teal-100 mb-6 max-w-2xl mx-auto text-sm md:text-base">
             Whether you choose one of our curated hampers or create your own, you'll be sending a gift that's sure to
             impress.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <button
               onClick={scrollToHampers}
-              className="px-6 py-3 bg-white text-teal-800 rounded-lg font-medium hover:bg-teal-50 transition-colors"
+              className="px-5 py-2.5 bg-white text-teal-800 rounded-lg font-medium hover:bg-teal-50 transition-colors"
             >
               Shop Hampers
             </button>
             <Link
               href="/hampers/build"
-              className="px-6 py-3 bg-transparent border-2 border-white text-white rounded-lg font-medium hover:bg-white/10 transition-colors"
+              className="px-5 py-2.5 bg-transparent border-2 border-white text-white rounded-lg font-medium hover:bg-white/10 transition-colors"
             >
               Build Your Own
             </Link>
             {isAuthenticated && (
               <Link
                 href="/hampers/my-hampers"
-                className="px-6 py-3 bg-teal-700 border-2 border-teal-700 text-white rounded-lg font-medium hover:bg-teal-600 hover:border-teal-600 transition-colors"
+                className="px-5 py-2.5 bg-teal-600 border-2 border-teal-600 text-white rounded-lg font-medium hover:bg-teal-500 hover:border-teal-500 transition-colors"
               >
                 <FolderHeart className="h-4 w-4 inline-block mr-2" />
                 My Hampers
@@ -568,7 +611,21 @@ export default function HampersPage() {
           </div>
         </div>
       </section>
+
+      <style jsx global>{`
+        .bg-pattern {
+          background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fillRule='evenodd'%  viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fillRule='evenodd'%3E%3Cg fill='%23ffffff' fillOpacity='0.2'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+        
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
     </div>
   )
 }
-
