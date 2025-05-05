@@ -72,7 +72,6 @@ export default function Header() {
   const [isSearching, setIsSearching] = useState(false)
   const [showSearchResults, setShowSearchResults] = useState(false)
   const [activeGroup, setActiveGroup] = useState<string | null>(null)
-  const [activeMobileTab, setActiveMobileTab] = useState("shop")
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
   const headerRef = useRef<HTMLElement>(null)
@@ -289,6 +288,9 @@ export default function Header() {
     { icon: <User className="h-5 w-5" />, label: "Account", href: "/account" },
     { icon: <Phone className="h-5 w-5" />, label: "Contact", href: "/contact" },
     { icon: <MessageSquare className="h-5 w-5" />, label: "Feedback", href: "/feedback" },
+    { icon: <Package className="h-5 w-5" />, label: "Shipping Info", href: "/shipping" },
+    { icon: <ShoppingBag className="h-5 w-5" />, label: "Returns & Refunds", href: "/returns" },
+    { icon: <Info className="h-5 w-5" />, label: "How it Works", href: "/how-it-works" },
   ]
 
   return (
@@ -409,7 +411,7 @@ export default function Header() {
                                 src={
                                   result.image_url.startsWith("http")
                                     ? result.image_url
-                                    : `${process.env.NEXT_PUBLIC_API_URL}${result.image_url}`
+                                    : `http://192.168.0.123:8000${result.image_url}`
                                 }
                                 alt={result.name}
                                 fill
@@ -466,10 +468,10 @@ export default function Header() {
 
               <CartIcon />
 
-              {/* Colorful Feedback Button - FIXED */}
+              {/* Colorful Feedback Button */}
               <Link
                 href="/feedback"
-                className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-gradient-to-r from-teal-600 via-amber-500 to-red-600 text-white font-medium text-sm hover:shadow-md transition-all hover:-translate-y-0.5 border border-white/20"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-gradient-to-r from-zimbabwe-green via-zimbabwe-yellow to-zimbabwe-red text-white font-medium text-sm hover:shadow-md transition-all hover:-translate-y-0.5"
               >
                 <MessageSquare className="h-4 w-4" />
                 <span>Feedback</span>
@@ -580,7 +582,7 @@ export default function Header() {
                           src={
                             result.image_url.startsWith("http")
                               ? result.image_url
-                              : `${process.env.NEXT_PUBLIC_API_URL}${result.image_url}`
+                              : `http://192.168.0.123:8000${result.image_url}`
                           }
                           alt={result.name}
                           fill
@@ -640,83 +642,80 @@ export default function Header() {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ duration: 0.3, ease: "easeOut" }}
-              className="absolute top-0 right-0 w-full max-w-xs h-full bg-gradient-to-r from-teal-600 to-teal-800 shadow-xl"
+              className="absolute top-0 right-0 w-full max-w-xs h-full flex flex-col bg-gradient-to-r from-teal-600 to-teal-800 shadow-xl rounded-l-2xl overflow-hidden"
               onClick={(e) => e.stopPropagation()}
               onTouchStart={(e) => e.stopPropagation()}
             >
-              <div className="sticky top-0 bg-teal-700/50 backdrop-blur-sm z-10 flex items-center justify-between p-4 border-b border-teal-500/30">
-                <h3 className="font-bold text-lg text-white">Menu</h3>
-                <button
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    setShowMobileMenu(false)
-                  }}
-                  onTouchStart={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    setShowMobileMenu(false)
-                  }}
-                  className="p-2 rounded-full hover:bg-teal-600/50 text-white"
-                  aria-label="Close menu"
-                >
-                  <X className="h-6 w-6" />
-                </button>
+              <div className="sticky top-0 bg-teal-700/70 backdrop-blur-md z-10 px-5 py-4 border-b border-teal-500/30">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    
+                    <h3 className="font-bold text-lg text-white ml-4">Menu</h3>
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setShowMobileMenu(false)
+                    }}
+                    onTouchStart={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setShowMobileMenu(false)
+                    }}
+                    className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+                    aria-label="Close menu"
+                  >
+                    <X className="h-5 w-5 text-white" />
+                  </button>
+                </div>
+                <div className="h-1 w-full bg-gradient-to-r from-zimbabwe-green via-zimbabwe-yellow to-zimbabwe-red mt-4 rounded-full"></div>
               </div>
-              <div className="p-4 space-y-1 overflow-y-auto h-[calc(100%-64px)]">
-                {menuItems.map((item) => (
+
+              <div className="p-5 overflow-y-auto h-[calc(100%-84px)]">
+                <div className="space-y-1.5">
+                  {menuItems.map((item) => (
+                    <Link
+                      key={item.label}
+                      href={item.href}
+                      className={`flex items-center gap-3 p-3.5 rounded-xl transition-all ${
+                        pathname === item.href
+                          ? "bg-white/10 text-white font-medium shadow-sm border border-white/10"
+                          : "text-white hover:bg-teal-700/50"
+                      }`}
+                      onClick={() => setShowMobileMenu(false)}
+                    >
+                      <div className={`${pathname === item.href ? "bg-white/20 p-1.5 rounded-lg" : "text-teal-100"}`}>
+                        {item.icon}
+                      </div>
+                      <span>{item.label}</span>
+                      {pathname === item.href && <div className="ml-auto w-1.5 h-6 bg-white rounded-full"></div>}
+                    </Link>
+                  ))}
+                </div>
+
+                {isAuthenticated ? (
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault()
+                      handleLogout()
+                      setShowMobileMenu(false)
+                    }}
+                    className="w-full flex items-center justify-center gap-2 mt-6 bg-gradient-to-r from-red-600/30 to-red-500/30 hover:from-red-600/40 hover:to-red-500/40 text-white p-3.5 rounded-xl transition-colors border border-red-500/20"
+                  >
+                    <User className="h-5 w-5" />
+                    <span>Sign Out</span>
+                  </button>
+                ) : (
                   <Link
-                    key={item.label}
-                    href={item.href}
-                    className={`flex items-center gap-3 p-3 rounded-lg ${
-                      pathname === item.href
-                        ? "bg-white text-teal-700 font-medium"
-                        : "text-white hover:bg-teal-700/50 transition-colors"
-                    }`}
+                    href="/login"
+                    className="w-full flex items-center justify-center gap-2 mt-6 bg-gradient-to-r from-teal-500/30 to-teal-400/30 hover:from-teal-500/40 hover:to-teal-400/40 text-white p-3.5 rounded-xl transition-colors border border-teal-400/20"
                     onClick={() => setShowMobileMenu(false)}
                   >
-                    <div className={pathname === item.href ? "text-teal-600" : "text-teal-100"}>{item.icon}</div>
-                    <span>{item.label}</span>
+                    <User className="h-5 w-5" />
+                    <span>Sign In</span>
                   </Link>
-                ))}
-
-                <div className="pt-6 mt-6 border-t border-teal-500/30">
-                  <div className="text-teal-100 text-sm mb-4">Quick Links</div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Link
-                      href="/wishlist"
-                      className="flex flex-col items-center justify-center gap-2 bg-teal-700/50 hover:bg-teal-700/70 text-white p-3 rounded-lg transition-colors"
-                      onClick={() => setShowMobileMenu(false)}
-                    >
-                      <Heart className="h-5 w-5" />
-                      <span className="text-xs">Wishlist</span>
-                    </Link>
-                    <Link
-                      href="/cart"
-                      className="flex flex-col items-center justify-center gap-2 bg-teal-700/50 hover:bg-teal-700/70 text-white p-3 rounded-lg transition-colors"
-                      onClick={() => setShowMobileMenu(false)}
-                    >
-                      <ShoppingCart className="h-5 w-5" />
-                      <span className="text-xs">Cart</span>
-                    </Link>
-                    <Link
-                      href="/account"
-                      className="flex flex-col items-center justify-center gap-2 bg-teal-700/50 hover:bg-teal-700/70 text-white p-3 rounded-lg transition-colors"
-                      onClick={() => setShowMobileMenu(false)}
-                    >
-                      <User className="h-5 w-5" />
-                      <span className="text-xs">Account</span>
-                    </Link>
-                    <Link
-                      href="/contact"
-                      className="flex flex-col items-center justify-center gap-2 bg-teal-700/50 hover:bg-teal-700/70 text-white p-3 rounded-lg transition-colors"
-                      onClick={() => setShowMobileMenu(false)}
-                    >
-                      <ShoppingBag className="h-5 w-5" />
-                      <span className="text-xs">Hampers</span>
-                    </Link>
-                  </div>
-                </div>
+                )}
               </div>
             </motion.div>
           </div>
