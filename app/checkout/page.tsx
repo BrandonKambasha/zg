@@ -194,10 +194,6 @@ function CheckoutContent() {
 
   // In the handleShippingSubmit function, ensure delivery_zone is handled correctly
   const handleShippingSubmit = (data: ShippingFormValues) => {
-    // Check if this is just a zone update
-    const isJustZoneUpdate =
-      data.delivery_zone !== shippingInfo.delivery_zone && Object.keys(data).length === Object.keys(shippingInfo).length
-
     // Make sure delivery_zone is not undefined
     const updatedData = {
       ...data,
@@ -209,20 +205,19 @@ function CheckoutContent() {
     // Always update the shipping info with the new data
     setShippingInfo(updatedData)
 
-    // Only proceed to the next step if this is a full form submission
-    // AND it's not just a zone update
+    // Check if this is a complete form submission with all required fields
     if (
-      !isJustZoneUpdate &&
       updatedData.fullName &&
       updatedData.email &&
       updatedData.phone &&
-      updatedData.delivery_zone
+      updatedData.delivery_zone &&
+      updatedData.zim_name &&
+      updatedData.zim_contact
     ) {
-      // This is a complete form submission with the "Proceed to Payment" button
+      // Immediately proceed to the payment step
       setStep(2)
       window.scrollTo({ top: 0, behavior: "smooth" })
     }
-    // Otherwise, this is just a zone update, so we stay on the current step
   }
 
   // In the handlePaymentMethodSelect function, update it to properly set the payment method
@@ -637,7 +632,7 @@ function CheckoutContent() {
                       <textarea
                         value={instructions}
                         onChange={(e) => setInstructions(e.target.value)}
-                        placeholder="Add any special instructions or notes for your order (e.g., delivery preferences, allergy information, etc.)"
+                        placeholder="Add any special instructions or notes for your order (e.g., delivery preferences, dietary requirements, etc.)"
                         className="w-full p-4 min-h-[100px] text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 resize-y"
                         maxLength={500}
                       />
