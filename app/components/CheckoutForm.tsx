@@ -716,8 +716,8 @@ export default function CheckoutForm({ initialValues, onSubmit, isSubmitting }: 
                       </div>
                       <div className="ml-3">
                         <p className="text-sm text-blue-700">
-                          If you're ordering from outside Zimbabwe, please provide a local contact person who can
-                          receive your delivery.
+                          Please provide a local contact person who can
+                          receive your delivery in Zimbabwe.
                         </p>
                       </div>
                     </div>
