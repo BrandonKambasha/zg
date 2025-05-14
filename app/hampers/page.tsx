@@ -17,6 +17,7 @@ import {
   ShoppingBag,
   FolderHeart,
   Search,
+  LogIn,
 } from "lucide-react"
 import { motion } from "framer-motion"
 import type { Hamper, Category } from "../Types"
@@ -196,13 +197,23 @@ export default function HampersPage() {
                 <Search className="h-4 w-4" />
                 <span className="font-medium">Browse Hampers</span>
               </button>
-              <Link
-                href="/hampers/build"
-                className="flex items-center justify-center gap-2 bg-white text-teal-800 py-2 px-4 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <PlusCircle className="h-4 w-4" />
-                <span className="font-medium">Build Your Own</span>
-              </Link>
+              {isAuthenticated ? (
+                <Link
+                  href="/hampers/build"
+                  className="flex items-center justify-center gap-2 bg-white text-teal-800 py-2 px-4 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <PlusCircle className="h-4 w-4" />
+                  <span className="font-medium">Build Your Own</span>
+                </Link>
+              ) : (
+                <Link
+                  href="/login?redirect=/hampers/build"
+                  className="flex items-center justify-center gap-2 bg-white text-teal-800 py-2 px-4 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <LogIn className="h-4 w-4" />
+                  <span className="font-medium">Login to Build</span>
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -224,22 +235,32 @@ export default function HampersPage() {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3">
-              {isAuthenticated && (
+              {isAuthenticated ? (
+                <>
+                  <Link
+                    href="/hampers/my-hampers"
+                    className="px-4 py-2 bg-teal-500 text-white rounded-lg font-medium hover:bg-teal-600 transition-colors flex items-center justify-center whitespace-nowrap shadow-sm"
+                  >
+                    <FolderHeart className="h-4 w-4 mr-2" />
+                    My Hampers
+                  </Link>
+                  <Link
+                    href="/hampers/build"
+                    className="px-4 py-2 bg-white text-teal-700 rounded-lg font-medium hover:bg-teal-50 transition-colors flex items-center justify-center whitespace-nowrap shadow-sm"
+                  >
+                    Start Building
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Link>
+                </>
+              ) : (
                 <Link
-                  href="/hampers/my-hampers"
-                  className="px-4 py-2 bg-teal-500 text-white rounded-lg font-medium hover:bg-teal-600 transition-colors flex items-center justify-center whitespace-nowrap shadow-sm"
+                  href="/login?redirect=/hampers/build"
+                  className="px-4 py-2 bg-white text-teal-700 rounded-lg font-medium hover:bg-teal-50 transition-colors flex items-center justify-center whitespace-nowrap shadow-sm"
                 >
-                  <FolderHeart className="h-4 w-4 mr-2" />
-                  My Hampers
+                  <LogIn className="h-4 w-4 mr-2" />
+                  Login to Build
                 </Link>
               )}
-              <Link
-                href="/hampers/build"
-                className="px-4 py-2 bg-white text-teal-700 rounded-lg font-medium hover:bg-teal-50 transition-colors flex items-center justify-center whitespace-nowrap shadow-sm"
-              >
-                Start Building
-                <ChevronRight className="h-4 w-4 ml-1" />
-              </Link>
             </div>
           </div>
           <div className="h-1 w-full bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400"></div>
@@ -593,19 +614,29 @@ export default function HampersPage() {
             >
               Shop Hampers
             </button>
-            <Link
-              href="/hampers/build"
-              className="px-5 py-2.5 bg-transparent border-2 border-white text-white rounded-lg font-medium hover:bg-white/10 transition-colors"
-            >
-              Build Your Own
-            </Link>
-            {isAuthenticated && (
+            {isAuthenticated ? (
+              <>
+                <Link
+                  href="/hampers/build"
+                  className="px-5 py-2.5 bg-transparent border-2 border-white text-white rounded-lg font-medium hover:bg-white/10 transition-colors"
+                >
+                  Build Your Own
+                </Link>
+                <Link
+                  href="/hampers/my-hampers"
+                  className="px-5 py-2.5 bg-teal-600 border-2 border-teal-600 text-white rounded-lg font-medium hover:bg-teal-500 hover:border-teal-500 transition-colors"
+                >
+                  <FolderHeart className="h-4 w-4 inline-block mr-2" />
+                  My Hampers
+                </Link>
+              </>
+            ) : (
               <Link
-                href="/hampers/my-hampers"
-                className="px-5 py-2.5 bg-teal-600 border-2 border-teal-600 text-white rounded-lg font-medium hover:bg-teal-500 hover:border-teal-500 transition-colors"
+                href="/login?redirect=/hampers/build"
+                className="px-5 py-2.5 bg-transparent border-2 border-white text-white rounded-lg font-medium hover:bg-white/10 transition-colors"
               >
-                <FolderHeart className="h-4 w-4 inline-block mr-2" />
-                My Hampers
+                <LogIn className="h-4 w-4 inline-block mr-2" />
+                Login to Build
               </Link>
             )}
           </div>
