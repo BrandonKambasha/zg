@@ -22,10 +22,13 @@ import {
   HelpCircle,
   AlertTriangle,
   Home,
+  User,
+  Shield,
 } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import Link from "next/link"
 import toast from "react-hot-toast"
+import Script from "next/script"
 
 export default function FeedbackClientPage() {
   const { user, isAuthenticated, isLoading } = useAuth()
@@ -34,10 +37,15 @@ export default function FeedbackClientPage() {
     type: "suggestion",
     subject: "",
     message: "",
+    name: "",
+    email: "",
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [recaptchaLoaded, setRecaptchaLoaded] = useState(false)
+  const [recaptchaToken, setRecaptchaToken] = useState("")
+  const [recaptchaError, setRecaptchaError] = useState("")
 
   // Animation variants
   const fadeInUpVariants = {
@@ -59,16 +67,47 @@ export default function FeedbackClientPage() {
     },
   }
 
-  // Handle authentication redirect
+  // Initialize form data with user info if authenticated
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push("/login?redirect=/feedback")
+    if (isAuthenticated && user) {
+      setFormData((prev) => ({
+        ...prev,
+        name: user.name || "",
+        email: user.email || "",
+      }))
     }
-  }, [isLoading, isAuthenticated, router])
+  }, [isAuthenticated, user])
 
-  // Show loading state while checking authentication or redirecting
-  if (!isLoading && !isAuthenticated) {
-    return null
+  // Handle reCAPTCHA execution
+  const executeRecaptcha = async () => {
+    if (!window.grecaptcha) {
+      setRecaptchaError("reCAPTCHA failed to load. Please refresh the page and try again.")
+      return null
+    }
+
+    try {
+      const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+      if (!siteKey) {
+        setRecaptchaError("reCAPTCHA site key is missing. Please contact support.")
+        return null
+      }
+
+      const token = await window.grecaptcha.execute(siteKey, { action: "feedback_submit" })
+      setRecaptchaToken(token)
+      return token
+    } catch (error) {
+      console.error("reCAPTCHA execution failed:", error)
+      setRecaptchaError("Failed to verify you're not a robot. Please try again.")
+      return null
+    }
+  }
+
+  // Handle reCAPTCHA script load
+  const handleRecaptchaLoad = () => {
+    setRecaptchaLoaded(true)
+    window.grecaptcha?.ready(() => {
+      console.log("reCAPTCHA is ready")
+    })
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -115,6 +154,19 @@ export default function FeedbackClientPage() {
       newErrors.message = "Message must be at least 10 characters"
     }
 
+    // Only validate name and email if user is not authenticated
+    if (!isAuthenticated) {
+      if (!formData.name.trim()) {
+        newErrors.name = "Name is required"
+      }
+
+      if (!formData.email.trim()) {
+        newErrors.email = "Email is required"
+      } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+        newErrors.email = "Please enter a valid email address"
+      }
+    }
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -126,13 +178,24 @@ export default function FeedbackClientPage() {
       return
     }
 
+    // Execute reCAPTCHA
+    const token = await executeRecaptcha()
+    if (!token) {
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
-      // Always include the user_id if the user is authenticated
+      // Prepare feedback data
       const feedbackData = {
         ...formData,
-        user_id: user?.id ? String(user.id) : undefined,
+        // If user is authenticated, use their ID, otherwise send name and email
+        user_id: isAuthenticated && user?.id ? String(user.id) : undefined,
+        // Always include name and email in the request
+        name: isAuthenticated && user ? user.name : formData.name,
+        email: isAuthenticated && user ? user.email : formData.email,
+        recaptchaToken: token,
       }
 
       console.log("Submitting feedback with data:", feedbackData)
@@ -147,6 +210,8 @@ export default function FeedbackClientPage() {
         type: "suggestion",
         subject: "",
         message: "",
+        name: "",
+        email: "",
       })
 
       // Redirect to home after a short delay
@@ -219,6 +284,12 @@ export default function FeedbackClientPage() {
 
   return (
     <div className="min-h-screen">
+      {/* Load reCAPTCHA script */}
+      <Script
+        src={`https://www.google.com/recaptcha/api.js?render=${process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}`}
+        onLoad={handleRecaptchaLoad}
+      />
+
       {/* Hero Section */}
       <section className="relative bg-gradient-to-r from-teal-600 to-teal-800 text-white overflow-hidden">
         <div className="absolute inset-0 opacity-20">
@@ -275,6 +346,47 @@ export default function FeedbackClientPage() {
               </CardHeader>
               <form onSubmit={handleSubmit}>
                 <CardContent className="space-y-4">
+                  {/* User Information Section - Only shown for non-authenticated users */}
+                  {!isAuthenticated && (
+                    <div className="space-y-4 p-4 bg-gray-50 rounded-lg border border-gray-100">
+                      <h3 className="font-medium text-gray-700 flex items-center">
+                        <User className="h-4 w-4 mr-2" />
+                        Your Information
+                      </h3>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="name" className="text-gray-700">
+                          Name
+                        </Label>
+                        <Input
+                          id="name"
+                          name="name"
+                          value={formData.name}
+                          onChange={handleChange}
+                          placeholder="Your full name"
+                          className={errors.name ? "border-red-500" : ""}
+                        />
+                        {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="email" className="text-gray-700">
+                          Email
+                        </Label>
+                        <Input
+                          id="email"
+                          name="email"
+                          type="email"
+                          value={formData.email}
+                          onChange={handleChange}
+                          placeholder="Your email address"
+                          className={errors.email ? "border-red-500" : ""}
+                        />
+                        {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="space-y-2">
                     <Label htmlFor="type" className="text-gray-700">
                       Feedback Type
@@ -350,10 +462,24 @@ export default function FeedbackClientPage() {
                     {errors.message && <p className="text-red-500 text-sm mt-1">{errors.message}</p>}
                   </div>
 
-                  {user && (
+                  {/* reCAPTCHA notice */}
+                  <div className="text-xs text-gray-500 flex items-center">
+                    <Shield className="h-3 w-3 mr-1 text-gray-400" />
+                    This form is protected by reCAPTCHA to ensure you're not a robot.
+                  </div>
+                  {recaptchaError && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Error</AlertTitle>
+                      <AlertDescription>{recaptchaError}</AlertDescription>
+                    </Alert>
+                  )}
+
+                  {/* Show user info if authenticated */}
+                  {isAuthenticated && user && (
                     <Alert className="bg-teal-50 border-teal-200">
                       <AlertTitle className="text-teal-800 flex items-center gap-2">
-                        <AlertCircle className="h-4 w-4" /> You are submitting as:
+                        <User className="h-4 w-4" /> You are submitting as:
                       </AlertTitle>
                       <AlertDescription className="text-teal-700">
                         {user.name} ({user.email})
@@ -367,13 +493,18 @@ export default function FeedbackClientPage() {
                   </Button>
                   <Button
                     type="submit"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || !recaptchaLoaded}
                     className="bg-teal-600 hover:bg-teal-700 text-white font-medium px-6 py-2 h-auto text-base shadow-md hover:shadow-lg transition-all"
                   >
                     {isSubmitting ? (
                       <>
                         <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                         Submitting...
+                      </>
+                    ) : !recaptchaLoaded ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Loading...
                       </>
                     ) : (
                       <>
@@ -458,8 +589,8 @@ export default function FeedbackClientPage() {
                   Can I submit feedback anonymously?
                 </h3>
                 <p className="text-gray-600 ml-7">
-                  Yes, you can submit feedback without logging in, but having your contact information helps us follow
-                  up if needed.
+                  While we require your name and email for communication purposes, we respect your privacy and will not
+                  share your information.
                 </p>
               </div>
             </div>

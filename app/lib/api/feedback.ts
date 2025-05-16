@@ -5,6 +5,9 @@ interface FeedbackData {
   subject: string
   message: string
   user_id?: string | number
+  name?: string
+  email?: string
+  recaptchaToken?: string
 }
 
 interface Feedback extends FeedbackData {
