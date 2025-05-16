@@ -2,6 +2,7 @@
 
 import type React from "react"
 
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import ProductGrid from "./components/ProductGrid"
@@ -23,7 +24,7 @@ import {
   MapPin,
   Globe,
 } from "lucide-react"
-import { useEffect, useState, useRef } from "react"
+import { useRef } from "react"
 import { motion, useInView } from "framer-motion"
 import { apiBaseUrl } from "./lib/axios"
 import { subscribeToNewsletter } from "./lib/api/Newsletter"
@@ -40,6 +41,7 @@ declare global {
 
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([])
+  const [randomProducts, setRandomProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [categoriesLoading, setCategoriesLoading] = useState(true)
@@ -75,6 +77,21 @@ export default function Home() {
   const newsletterInView = useInView(newsletterRef, { once: true, amount: 0.3 })
   const logoBannerInView = useInView(logoBannerRef, { once: true, amount: 0.2 })
 
+  // Function to get random products
+  const getRandomProducts = (allProducts: Product[], count: number) => {
+    // Make a copy of the array to avoid modifying the original
+    const productsCopy = [...allProducts]
+
+    // Shuffle the array using Fisher-Yates algorithm
+    for (let i = productsCopy.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[productsCopy[i], productsCopy[j]] = [productsCopy[j], productsCopy[i]]
+    }
+
+    // Return the first 'count' products
+    return productsCopy.slice(0, count)
+  }
+
   useEffect(() => {
     let isMounted = true
 
@@ -86,6 +103,12 @@ export default function Home() {
           const productsData = await getProducts()
           if (isMounted) {
             setProducts(productsData || [])
+
+            // Set random products when products data is loaded
+            if (productsData && productsData.length > 0) {
+              const randomProductsSelection = getRandomProducts(productsData, 4)
+              setRandomProducts(randomProductsSelection)
+            }
           }
         } catch (productError) {
           console.error("Error fetching products:", productError)
@@ -420,7 +443,6 @@ export default function Home() {
         </div>
       </section>
 
-
       {/* How It Works Section - Compact Version - MOVED UP */}
       <section ref={howItWorksRef} className="container mx-auto px-4 mb-8 sm:mb-12">
         <motion.div
@@ -507,7 +529,7 @@ export default function Home() {
         </motion.div>
       </section>
 
-      {/* Featured Products Section - Improved for mobile */}
+      {/* Featured Products Section - Modified to show random products */}
       <section ref={productsRef} className="container mx-auto px-4">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0 mb-4 sm:mb-6 md:mb-8">
           <motion.h2
@@ -541,7 +563,8 @@ export default function Home() {
               ))}
             </div>
           ) : (
-            <ProductGrid products={products.slice(0, 4)} />
+            // Use randomProducts instead of products.slice(0, 4)
+            <ProductGrid products={randomProducts} />
           )}
         </motion.div>
       </section>
@@ -851,4 +874,3 @@ export default function Home() {
     </div>
   )
 }
-
