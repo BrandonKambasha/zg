@@ -6,9 +6,11 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import ProductGrid from "./components/ProductGrid"
+import HamperGrid from "./components/HamperGrid"
 import { getCategories } from "./lib/api/categories"
 import { getProducts } from "./lib/api/products"
-import type { Category, Product } from "./Types"
+import { getHampers } from "./lib/api/hampers"
+import type { Category, Product, Hamper } from "./Types"
 import {
   ArrowRight,
   Truck,
@@ -23,6 +25,8 @@ import {
   CreditCard,
   MapPin,
   Globe,
+  MessageSquare,
+  Check,
 } from "lucide-react"
 import { useRef } from "react"
 import { motion, useInView } from "framer-motion"
@@ -42,8 +46,11 @@ declare global {
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([])
   const [randomProducts, setRandomProducts] = useState<Product[]>([])
+  const [hampers, setHampers] = useState<Hamper[]>([])
+  const [randomHampers, setRandomHampers] = useState<Hamper[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [hampersLoading, setHampersLoading] = useState(true)
   const [categoriesLoading, setCategoriesLoading] = useState(true)
   const [email, setEmail] = useState("")
   const [subscriptionStatus, setSubscriptionStatus] = useState<"idle" | "loading" | "success" | "error">("idle")
@@ -61,35 +68,39 @@ export default function Home() {
   const heroRef = useRef(null)
   const categoriesRef = useRef(null)
   const productsRef = useRef(null)
+  const hampersRef = useRef(null) // New ref for hampers section
   const promoRef = useRef(null)
   const howItWorksRef = useRef(null)
   const whyShopRef = useRef(null)
   const newsletterRef = useRef(null)
+  const feedbackRef = useRef(null) // New ref for feedback section
   const logoBannerRef = useRef(null)
 
   // Check if sections are in view
   const heroInView = useInView(heroRef, { once: true })
   const categoriesInView = useInView(categoriesRef, { once: true, amount: 0.2 })
   const productsInView = useInView(productsRef, { once: true, amount: 0.1 })
+  const hampersInView = useInView(hampersRef, { once: true, amount: 0.1 }) // New inView for hampers
   const promoInView = useInView(promoRef, { once: true, amount: 0.2 })
   const howItWorksInView = useInView(howItWorksRef, { once: true, amount: 0.1 })
   const whyShopInView = useInView(whyShopRef, { once: true, amount: 0.1 })
   const newsletterInView = useInView(newsletterRef, { once: true, amount: 0.3 })
+  const feedbackInView = useInView(feedbackRef, { once: true, amount: 0.3 }) // New inView for feedback
   const logoBannerInView = useInView(logoBannerRef, { once: true, amount: 0.2 })
 
-  // Function to get random products
-  const getRandomProducts = (allProducts: Product[], count: number) => {
+  // Function to get random items
+  const getRandomItems = <T,>(items: T[], count: number): T[] => {
     // Make a copy of the array to avoid modifying the original
-    const productsCopy = [...allProducts]
+    const itemsCopy = [...items]
 
     // Shuffle the array using Fisher-Yates algorithm
-    for (let i = productsCopy.length - 1; i > 0; i--) {
+    for (let i = itemsCopy.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1))
-      ;[productsCopy[i], productsCopy[j]] = [productsCopy[j], productsCopy[i]]
+      ;[itemsCopy[i], itemsCopy[j]] = [itemsCopy[j], itemsCopy[i]]
     }
 
-    // Return the first 'count' products
-    return productsCopy.slice(0, count)
+    // Return the first 'count' items
+    return itemsCopy.slice(0, count)
   }
 
   useEffect(() => {
@@ -97,8 +108,9 @@ export default function Home() {
 
     async function fetchData() {
       setIsLoading(true)
+      setHampersLoading(true)
       try {
-        // Fetch products and categories separately with better error handling
+        // Fetch products
         try {
           const productsData = await getProducts()
           if (isMounted) {
@@ -106,14 +118,39 @@ export default function Home() {
 
             // Set random products when products data is loaded
             if (productsData && productsData.length > 0) {
-              const randomProductsSelection = getRandomProducts(productsData, 4)
+              const randomProductsSelection = getRandomItems(productsData, 4)
               setRandomProducts(randomProductsSelection)
             }
           }
         } catch (productError) {
           console.error("Error fetching products:", productError)
+        } finally {
+          if (isMounted) {
+            setIsLoading(false)
+          }
         }
 
+        // Fetch hampers
+        try {
+          const hampersData = await getHampers()
+          if (isMounted) {
+            setHampers(hampersData || [])
+
+            // Set random hampers when hampers data is loaded
+            if (hampersData && hampersData.length > 0) {
+              const randomHampersSelection = getRandomItems(hampersData, 4)
+              setRandomHampers(randomHampersSelection)
+            }
+          }
+        } catch (hamperError) {
+          console.error("Error fetching hampers:", hamperError)
+        } finally {
+          if (isMounted) {
+            setHampersLoading(false)
+          }
+        }
+
+        // Fetch categories
         try {
           setCategoriesLoading(true)
           const categoriesData = await getCategories()
@@ -129,10 +166,6 @@ export default function Home() {
         }
       } catch (error) {
         console.error("Error in fetchData:", error)
-      } finally {
-        if (isMounted) {
-          setIsLoading(false)
-        }
       }
     }
 
@@ -529,6 +562,49 @@ export default function Home() {
         </motion.div>
       </section>
 
+      {/* NEW: Gift Collections Section (Featured Hampers) */}
+      <section ref={hampersRef} className="container mx-auto px-4">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0 mb-4 sm:mb-6 md:mb-8">
+          <motion.h2
+            className="section-title text-xl sm:text-2xl"
+            variants={fadeInLeft}
+            initial="hidden"
+            animate={hampersInView ? "visible" : "hidden"}
+          >
+            Featured Hampers
+          </motion.h2>
+          <motion.div variants={fadeInRight} initial="hidden" animate={hampersInView ? "visible" : "hidden"}>
+            <Link
+              href="/hampers"
+              className="text-teal-600 hover:text-teal-700 font-medium flex items-center group text-sm"
+            >
+              View All
+              <ArrowRight className="ml-1 h-4 w-4 transform group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </motion.div>
+        </div>
+
+        <motion.div variants={fadeIn} initial="hidden" animate={hampersInView ? "visible" : "hidden"}>
+          {hampersLoading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div key={index} className="animate-pulse">
+                  <div className="bg-gray-200 rounded-lg sm:rounded-xl aspect-square mb-3"></div>
+                  <div className="h-4 bg-gray-200 rounded mb-2 w-3/4"></div>
+                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                </div>
+              ))}
+            </div>
+          ) : randomHampers.length > 0 ? (
+            <HamperGrid hampers={randomHampers} />
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-500">No gift collections found. Please try refreshing the page.</p>
+            </div>
+          )}
+        </motion.div>
+      </section>
+
       {/* Featured Products Section - Modified to show random products */}
       <section ref={productsRef} className="container mx-auto px-4">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0 mb-4 sm:mb-6 md:mb-8">
@@ -566,6 +642,49 @@ export default function Home() {
             // Use randomProducts instead of products.slice(0, 4)
             <ProductGrid products={randomProducts} />
           )}
+        </motion.div>
+      </section>
+
+      {/* NEW: Feedback Section */}
+      <section ref={feedbackRef} className="container mx-auto px-4 py-6">
+        <motion.div
+          className="bg-gradient-to-r from-amber-50 to-amber-100 rounded-xl p-6 sm:p-8 border border-amber-200"
+          variants={fadeIn}
+          initial="hidden"
+          animate={feedbackInView ? "visible" : "hidden"}
+        >
+          <div className="flex flex-col md:flex-row items-center gap-6">
+            <div className="md:w-2/3">
+              <h2 className="text-xl sm:text-2xl font-bold text-amber-800 mb-3">Can't Find What You're Looking For?</h2>
+              <p className="text-amber-700 mb-4">
+                We're constantly expanding our product range to better serve the Zimbabwean community. If you can't find
+                a specific product, let us know and we'll work towards adding it to our store.
+              </p>
+              <ul className="text-amber-700 mb-4 space-y-2">
+                <li className="flex items-start">
+                  <Check className="h-5 w-5 text-amber-600 mr-2 flex-shrink-0 mt-0.5" />
+                  <span>Request specific Zimbabwean products</span>
+                </li>
+                <li className="flex items-start">
+                  <Check className="h-5 w-5 text-amber-600 mr-2 flex-shrink-0 mt-0.5" />
+                  <span>Suggest improvements to our service</span>
+                </li>
+                <li className="flex items-start">
+                  <Check className="h-5 w-5 text-amber-600 mr-2 flex-shrink-0 mt-0.5" />
+                  <span>Share your experience with us</span>
+                </li>
+              </ul>
+            </div>
+            <div className="md:w-1/3 flex justify-center">
+              <Link
+                href="/feedback"
+                className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 shadow-md hover:shadow-lg"
+              >
+                <MessageSquare className="h-5 w-5" />
+                Share Your Feedback
+              </Link>
+            </div>
+          </div>
         </motion.div>
       </section>
 
