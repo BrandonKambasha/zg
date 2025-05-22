@@ -819,10 +819,69 @@ export default function AccountPage() {
   )
 }
 
-// Order History Component - Improved styling for mobile
+// Order History Component - Professional redesign
 function OrderHistory({ orders, isLoading }: { orders: Order[]; isLoading: boolean }) {
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [filterStatus, setFilterStatus] = useState<string | null>(null)
+  const [sortOption, setSortOption] = useState<string>("newest")
+  const [searchQuery, setSearchQuery] = useState("")
+  const [currentPage, setCurrentPage] = useState(1)
+  const ordersPerPage = 5
+
+  // Get unique statuses from orders
+  const orderStatuses = useMemo(() => {
+    if (!orders.length) return []
+    const statusSet = new Set(orders.map((order) => order.status))
+    return Array.from(statusSet)
+  }, [orders])
+
+  // Filter and sort orders
+  const filteredOrders = useMemo(() => {
+    let result = [...orders]
+
+    // Apply search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase()
+      result = result.filter(
+        (order) =>
+          order.id.toString().includes(query) ||
+          order.status.toLowerCase().includes(query) ||
+          (order.shipping_address && order.shipping_address.toLowerCase().includes(query)),
+      )
+    }
+
+    // Apply status filter
+    if (filterStatus) {
+      result = result.filter((order) => order.status === filterStatus)
+    }
+
+    // Apply sorting
+    switch (sortOption) {
+      case "newest":
+        return result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      case "oldest":
+        return result.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+      case "highest":
+        return result.sort((a, b) => b.total_amount - a.total_amount)
+      case "lowest":
+        return result.sort((a, b) => a.total_amount - b.total_amount)
+      default:
+        return result
+    }
+  }, [orders, searchQuery, filterStatus, sortOption])
+
+  // Pagination
+  const totalPages = Math.ceil(filteredOrders.length / ordersPerPage)
+  const indexOfLastOrder = currentPage * ordersPerPage
+  const indexOfFirstOrder = indexOfLastOrder - ordersPerPage
+  const currentOrders = filteredOrders.slice(indexOfFirstOrder, indexOfLastOrder)
+
+  const paginate = (pageNumber: number) => {
+    setCurrentPage(pageNumber)
+    // Scroll to top of orders section
+    document.getElementById("orders-section")?.scrollIntoView({ behavior: "smooth", block: "start" })
+  }
 
   const openOrderModal = (orderId: number) => {
     setSelectedOrderId(orderId)
@@ -836,6 +895,11 @@ function OrderHistory({ orders, isLoading }: { orders: Order[]; isLoading: boole
       setSelectedOrderId(null)
     }, 300)
   }
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery, filterStatus, sortOption])
 
   if (isLoading) {
     return (
@@ -868,58 +932,353 @@ function OrderHistory({ orders, isLoading }: { orders: Order[]; isLoading: boole
   }
 
   return (
-    <div className="overflow-hidden">
-      <div className="grid gap-3 sm:gap-4">
-        {orders.map((order) => (
-          <div
-            key={order.id}
-            className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow"
-          >
-            <div className="p-3 sm:p-4 md:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-                <div className="bg-teal-50 rounded-full p-2.5 sm:p-3 flex sm:hidden md:flex">
-                  <Package className="h-5 w-5 sm:h-6 sm:w-6 text-teal-600" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-semibold text-gray-900 text-sm sm:text-base">Order #{order.id}</span>
-                    <span
-                      className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        order.status === "delivered"
-                          ? "bg-green-100 text-green-800"
-                          : order.status === "shipped"
-                            ? "bg-blue-100 text-blue-800"
-                            : order.status === "processing"
-                              ? "bg-yellow-100 text-yellow-800"
-                              : order.status === "cancelled"
-                                ? "bg-red-100 text-red-800"
-                                : "bg-gray-100 text-gray-800"
-                      }`}
-                    >
-                      {order.status}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-sm text-gray-500">
-                    <div className="flex items-center">
-                      <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
-                      {new Date(order.created_at).toLocaleDateString()}
-                    </div>
-                    <div className="font-medium">${order.total_amount}</div>
-                  </div>
-                </div>
-              </div>
-              <button
-                onClick={() => openOrderModal(order.id)}
-                className="text-teal-600 hover:text-teal-800 flex items-center justify-center transition-colors bg-teal-50 hover:bg-teal-100 px-4 py-2 rounded-lg self-stretch sm:self-start w-full sm:w-auto mt-2 sm:mt-0"
-                style={{ minHeight: "40px" }}
+    <div id="orders-section">
+      {/* Orders header with stats and controls */}
+      <div className="mb-6 bg-gray-50 rounded-xl p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-800 flex items-center">
+              <Package className="w-5 h-5 mr-2 text-teal-600" />
+              My Orders ({orders.length} {orders.length === 1 ? "order" : "orders"})
+            </h3>
+            <p className="text-sm text-gray-500 mt-1">
+              Track your order history, check status, and view order details.
+            </p>
+          </div>
+
+          {/* Search bar */}
+          <div className="relative w-full sm:w-auto">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              <svg
+                className="w-4 h-4 text-gray-500"
+                aria-hidden="true"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 20 20"
               >
-                <Eye className="w-4 h-4 mr-2" />
-                View Details
-              </button>
+                <path
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"
+                />
+              </svg>
+            </div>
+            <input
+              type="search"
+              className="block w-full sm:w-64 p-2 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-white focus:ring-teal-500 focus:border-teal-500"
+              placeholder="Search orders..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Filters and sorting */}
+        <div className="mt-4 flex flex-col sm:flex-row gap-3 sm:items-center">
+          {/* Status filter */}
+          {orderStatuses.length > 1 && (
+            <div className="relative">
+              <select
+                className="appearance-none bg-white border border-gray-300 rounded-lg py-2 pl-3 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                value={filterStatus || ""}
+                onChange={(e) => setFilterStatus(e.target.value || null)}
+              >
+                <option value="">All Statuses</option>
+                {orderStatuses.map((status) => (
+                  <option key={status} value={status}>
+                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                  </option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                <ChevronDown className="h-4 w-4" />
+              </div>
+            </div>
+          )}
+
+          {/* Sort options */}
+          <div className="relative">
+            <select
+              className="appearance-none bg-white border border-gray-300 rounded-lg py-2 pl-3 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              value={sortOption}
+              onChange={(e) => setSortOption(e.target.value)}
+            >
+              <option value="newest">Sort by: Newest First</option>
+              <option value="oldest">Sort by: Oldest First</option>
+              <option value="highest">Sort by: Highest Amount</option>
+              <option value="lowest">Sort by: Lowest Amount</option>
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+              <ChevronDown className="h-4 w-4" />
             </div>
           </div>
-        ))}
+
+          {/* Clear filters button - only show if filters are applied */}
+          {(filterStatus || searchQuery || sortOption !== "newest") && (
+            <button
+              onClick={() => {
+                setFilterStatus(null)
+                setSearchQuery("")
+                setSortOption("newest")
+              }}
+              className="ml-auto text-sm text-teal-600 hover:text-teal-800 flex items-center"
+            >
+              <X className="h-4 w-4 mr-1" />
+              Clear Filters
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* Orders list with improved cards */}
+      {currentOrders.length > 0 ? (
+        <div className="space-y-4">
+          {currentOrders.map((order) => (
+            <div
+              key={order.id}
+              className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow"
+            >
+              <div className="p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                    {/* Order status indicator */}
+                    <div className="flex items-center">
+                      <div
+                        className={`w-3 h-3 rounded-full mr-2 ${
+                          order.status === "delivered"
+                            ? "bg-green-500"
+                            : order.status === "shipped"
+                              ? "bg-blue-500"
+                              : order.status === "processing"
+                                ? "bg-yellow-500"
+                                : order.status === "cancelled"
+                                  ? "bg-red-500"
+                                  : "bg-gray-500"
+                        }`}
+                      ></div>
+                      <span
+                        className={`text-sm font-medium ${
+                          order.status === "delivered"
+                            ? "text-green-700"
+                            : order.status === "shipped"
+                              ? "text-blue-700"
+                              : order.status === "processing"
+                                ? "text-yellow-700"
+                                : order.status === "cancelled"
+                                  ? "text-red-700"
+                                  : "text-gray-700"
+                        }`}
+                      >
+                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                      </span>
+                    </div>
+
+                    {/* Order ID and date */}
+                    <div>
+                      <h4 className="font-semibold text-gray-900">Order #{order.id}</h4>
+                      <div className="flex items-center text-sm text-gray-500">
+                        <Clock className="h-3.5 w-3.5 mr-1" />
+                        {new Date(order.created_at).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Order amount and actions */}
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                    <div className="text-right">
+                      <div className="font-bold text-gray-900">${order.total_amount}</div>
+                      
+                    </div>
+                    <button
+                      onClick={() => openOrderModal(order.id)}
+                      className="bg-teal-50 hover:bg-teal-100 text-teal-600 px-4 py-2 rounded-lg flex items-center justify-center transition-colors"
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      View Details
+                    </button>
+                  </div>
+                </div>
+
+                {/* Order progress bar for non-cancelled orders */}
+                {order.status !== "cancelled" && (
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <div className="relative">
+                      <div className="overflow-hidden h-2 text-xs flex rounded bg-gray-200">
+                        <div
+                          style={{
+                            width:
+                              order.status === "delivered"
+                                ? "100%"
+                                : order.status === "shipped"
+                                  ? "66%"
+                                  : order.status === "processing"
+                                    ? "33%"
+                                    : "0%",
+                          }}
+                          className={`shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center ${
+                            order.status === "delivered"
+                              ? "bg-green-500"
+                              : order.status === "shipped"
+                                ? "bg-blue-500"
+                                : "bg-yellow-500"
+                          }`}
+                        ></div>
+                      </div>
+                      <div className="flex justify-between text-xs text-gray-600 mt-1">
+                        <span className={order.status !== "pending" ? "font-medium" : ""}>Processing</span>
+                        <span
+                          className={order.status === "shipped" || order.status === "delivered" ? "font-medium" : ""}
+                        >
+                          Shipped
+                        </span>
+                        <span className={order.status === "delivered" ? "font-medium" : ""}>Delivered</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Cancelled order message */}
+                {order.status === "cancelled" && (
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <div className="bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm flex items-start">
+                      <AlertTriangle className="h-4 w-4 mr-2 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-medium">Order cancelled</span>
+                        
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="py-8 text-center bg-gray-50 rounded-xl">
+          <div className="bg-white inline-flex rounded-full p-3 mb-3 shadow-sm">
+            <AlertTriangle className="h-6 w-6 text-yellow-500" />
+          </div>
+          <h3 className="text-lg font-semibold mb-2">No matching orders</h3>
+          <p className="text-gray-500 mb-4 max-w-md mx-auto">
+            No orders match your current search or filter criteria. Try adjusting your filters.
+          </p>
+          <button
+            onClick={() => {
+              setFilterStatus(null)
+              setSearchQuery("")
+              setSortOption("newest")
+            }}
+            className="inline-flex items-center bg-teal-600 text-white px-5 py-2.5 rounded-lg hover:bg-teal-700 transition-colors shadow-md text-sm"
+          >
+            Clear Filters
+          </button>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex justify-center mt-6">
+          <nav className="inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+            <button
+              onClick={() => paginate(currentPage - 1)}
+              disabled={currentPage === 1}
+              className={`relative inline-flex items-center px-2 py-2 rounded-l-md border ${
+                currentPage === 1
+                  ? "border-gray-300 bg-white text-gray-300 cursor-not-allowed"
+                  : "border-gray-300 bg-white text-gray-500 hover:bg-gray-50"
+              }`}
+            >
+              <span className="sr-only">Previous</span>
+              <svg
+                className="h-5 w-5"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+
+            {/* Page numbers */}
+            {Array.from({ length: totalPages }).map((_, index) => {
+              const pageNumber = index + 1
+              // Show current page, first page, last page, and pages around current page
+              if (
+                pageNumber === 1 ||
+                pageNumber === totalPages ||
+                (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
+              ) {
+                return (
+                  <button
+                    key={pageNumber}
+                    onClick={() => paginate(pageNumber)}
+                    className={`relative inline-flex items-center px-4 py-2 border ${
+                      currentPage === pageNumber
+                        ? "z-10 bg-teal-50 border-teal-500 text-teal-600"
+                        : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
+                    }`}
+                  >
+                    {pageNumber}
+                  </button>
+                )
+              }
+
+              // Show ellipsis for skipped pages
+              if (
+                (pageNumber === 2 && currentPage > 3) ||
+                (pageNumber === totalPages - 1 && currentPage < totalPages - 2)
+              ) {
+                return (
+                  <span
+                    key={pageNumber}
+                    className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-gray-700"
+                  >
+                    ...
+                  </span>
+                )
+              }
+
+              return null
+            })}
+
+            <button
+              onClick={() => paginate(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className={`relative inline-flex items-center px-2 py-2 rounded-r-md border ${
+                currentPage === totalPages
+                  ? "border-gray-300 bg-white text-gray-300 cursor-not-allowed"
+                  : "border-gray-300 bg-white text-gray-500 hover:bg-gray-50"
+              }`}
+            >
+              <span className="sr-only">Next</span>
+              <svg
+                className="h-5 w-5"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+          </nav>
+        </div>
+      )}
 
       {/* Order Modal */}
       <OrderModal orderId={selectedOrderId} isOpen={isModalOpen} onClose={closeOrderModal} />
