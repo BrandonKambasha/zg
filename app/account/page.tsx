@@ -661,65 +661,6 @@ export default function AccountPage() {
                     </button>
                   </div>
                 </div>
-
-                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
-                  <div className="px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 border-b border-gray-200">
-                    <h3 className="text-base sm:text-lg font-medium text-gray-800">Notifications</h3>
-                  </div>
-                  <div className="p-4 sm:p-6">
-                    <div className="space-y-3 sm:space-y-4">
-                      <div className="flex items-start p-3 hover:bg-gray-50 rounded-lg transition-colors">
-                        <input
-                          id="order_updates"
-                          type="checkbox"
-                          className="mt-1 h-5 w-5 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
-                          defaultChecked
-                          style={{ minWidth: "20px", minHeight: "20px" }}
-                        />
-                        <label htmlFor="order_updates" className="ml-3 block">
-                          <span className="font-medium text-gray-800 block mb-1">Order updates</span>
-                          <span className="text-gray-500 text-sm">Receive notifications about your order status</span>
-                        </label>
-                      </div>
-                      <div className="flex items-start p-3 hover:bg-gray-50 rounded-lg transition-colors">
-                        <input
-                          id="promotions"
-                          type="checkbox"
-                          className="mt-1 h-5 w-5 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
-                          defaultChecked
-                          style={{ minWidth: "20px", minHeight: "20px" }}
-                        />
-                        <label htmlFor="promotions" className="ml-3 block">
-                          <span className="font-medium text-gray-800 block mb-1">Promotions and offers</span>
-                          <span className="text-gray-500 text-sm">
-                            Receive emails about new promotions and discounts
-                          </span>
-                        </label>
-                      </div>
-                      <div className="flex items-start p-3 hover:bg-gray-50 rounded-lg transition-colors">
-                        <input
-                          id="newsletter"
-                          type="checkbox"
-                          className="mt-1 h-5 w-5 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
-                          style={{ minWidth: "20px", minHeight: "20px" }}
-                        />
-                        <label htmlFor="newsletter" className="ml-3 block">
-                          <span className="font-medium text-gray-800 block mb-1">Newsletter</span>
-                          <span className="text-gray-500 text-sm">
-                            Receive our weekly newsletter with new products and recipes
-                          </span>
-                        </label>
-                      </div>
-                    </div>
-                    <button
-                      className="mt-6 bg-teal-600 text-white px-6 py-2 rounded-lg hover:bg-teal-700 transition-colors shadow-md w-full sm:w-auto"
-                      style={{ minHeight: "44px" }}
-                    >
-                      Save Preferences
-                    </button>
-                  </div>
-                </div>
-
                 <div className="bg-white rounded-lg border border-red-200 overflow-hidden shadow-sm">
                   <div className="px-4 sm:px-6 py-3 sm:py-4 bg-red-50 border-b border-red-200">
                     <h3 className="text-base sm:text-lg font-medium text-red-600">Danger Zone</h3>
