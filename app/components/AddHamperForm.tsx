@@ -42,10 +42,23 @@ export function AddHamperForm({ onSuccess }: AddHamperFormProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
 
+  // Function to calculate total price from selected products
+  const calculateTotalPrice = (products: Array<{ product: Product; quantity: number }>) => {
+    const total = products.reduce((sum, item) => {
+      const productPrice =
+        typeof item.product.price === "string" ? Number.parseFloat(item.product.price) : item.product.price
+      return sum + productPrice * item.quantity
+    }, 0)
+
+    // Round up to the nearest whole number
+    return Math.ceil(total)
+  }
+
   const {
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
   } = useForm<HamperFormValues>({
     resolver: zodResolver(hamperSchema),
@@ -115,20 +128,33 @@ export function AddHamperForm({ onSuccess }: AddHamperFormProps) {
 
   const addProduct = (product: Product) => {
     if (!selectedProducts.some((item) => item.product.id === product.id)) {
-      setSelectedProducts([...selectedProducts, { product, quantity: 1 }])
+      const updatedProducts = [...selectedProducts, { product, quantity: 1 }]
+      setSelectedProducts(updatedProducts)
+
+      // Update price when adding a product
+      const calculatedPrice = calculateTotalPrice(updatedProducts)
+      setValue("price", calculatedPrice.toString())
     }
   }
 
   const removeProduct = (productId: number) => {
-    setSelectedProducts(selectedProducts.filter((item) => item.product.id !== productId))
+    const updatedProducts = selectedProducts.filter((item) => item.product.id !== productId)
+    setSelectedProducts(updatedProducts)
+
+    // Update price when removing a product
+    const calculatedPrice = calculateTotalPrice(updatedProducts)
+    setValue("price", calculatedPrice.toString())
   }
 
   const updateProductQuantity = (productId: number, quantity: number) => {
-    setSelectedProducts(
-      selectedProducts.map((item) =>
-        item.product.id === productId ? { ...item, quantity: Math.max(1, quantity) } : item,
-      ),
+    const updatedProducts = selectedProducts.map((item) =>
+      item.product.id === productId ? { ...item, quantity: Math.max(1, quantity) } : item,
     )
+    setSelectedProducts(updatedProducts)
+
+    // Update price when changing quantity
+    const calculatedPrice = calculateTotalPrice(updatedProducts)
+    setValue("price", calculatedPrice.toString())
   }
 
   const onSubmit = async (data: HamperFormValues) => {
@@ -259,7 +285,9 @@ export function AddHamperForm({ onSuccess }: AddHamperFormProps) {
                 type="text"
                 {...register("price")}
                 className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                readOnly
               />
+              <p className="text-xs text-gray-500 mt-1">Price is automatically calculated from products</p>
               {errors.price && <p className="text-red-500 text-sm mt-1">{errors.price.message}</p>}
             </div>
 
@@ -451,4 +479,3 @@ export function AddHamperForm({ onSuccess }: AddHamperFormProps) {
     </div>
   )
 }
-

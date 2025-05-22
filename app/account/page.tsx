@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { useAuth } from "../hooks/useAuth"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
@@ -10,7 +10,6 @@ import toast from "react-hot-toast"
 import {
   User,
   Package,
-  CreditCard,
   Heart,
   Settings,
   LogOut,
@@ -205,7 +204,6 @@ export default function AccountPage() {
     { id: "profile", label: "Profile", icon: User },
     { id: "orders", label: "Orders", icon: Package },
     { id: "wishlist", label: "Wishlist", icon: Heart },
-    { id: "payments", label: "Payments", icon: CreditCard },
     { id: "settings", label: "Settings", icon: Settings },
   ]
 
@@ -252,7 +250,6 @@ export default function AccountPage() {
               <div className="bg-teal-50 rounded-full p-2 mr-3">
                 {activeTab === "profile" && <User className="w-5 h-5 text-teal-600" />}
                 {activeTab === "orders" && <Package className="w-5 h-5 text-teal-600" />}
-                {activeTab === "payments" && <CreditCard className="w-5 h-5 text-teal-600" />}
                 {activeTab === "wishlist" && <Heart className="w-5 h-5 text-teal-600" />}
                 {activeTab === "settings" && <Settings className="w-5 h-5 text-teal-600" />}
                 {activeTab === "admin" && <Shield className="w-5 h-5 text-teal-600" />}
@@ -264,7 +261,6 @@ export default function AccountPage() {
                 <span className="text-xs text-gray-500">
                   {activeTab === "profile" && "Manage your personal information"}
                   {activeTab === "orders" && "View your order history"}
-                  {activeTab === "payments" && "Manage your payment methods"}
                   {activeTab === "wishlist" && "Products you've saved"}
                   {activeTab === "settings" && "Account preferences"}
                   {activeTab === "admin" && "Admin dashboard"}
@@ -342,7 +338,6 @@ export default function AccountPage() {
                       <span className="text-xs text-gray-500">
                         {item.id === "profile" && "Personal details & address"}
                         {item.id === "orders" && "View your purchase history"}
-                        {item.id === "payments" && "Manage payment methods"}
                         {item.id === "wishlist" && "Products you've saved"}
                         {item.id === "settings" && "Password & notifications"}
                         {item.id === "admin" && "Manage store content"}
@@ -589,29 +584,6 @@ export default function AccountPage() {
             </div>
             <div className="p-4 sm:p-6">
               <OrderHistory orders={orders} isLoading={ordersLoading} />
-            </div>
-          </div>
-        )}
-
-        {/* Payments Tab Content - Improved styling */}
-        {activeTab === "payments" && (
-          <div className="bg-white rounded-xl shadow-md overflow-hidden">
-            <div className="px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-b">
-              <h2 className="text-lg sm:text-xl font-bold text-gray-800">Payment Methods</h2>
-              <p className="text-xs sm:text-sm text-gray-500">Manage your payment options.</p>
-            </div>
-            <div className="p-4 sm:p-6">
-              <div className="flex flex-col items-center justify-center py-8 sm:py-12 text-center">
-                <CreditCard className="h-12 w-12 sm:h-16 sm:w-16 text-gray-300 mb-4" />
-                <h3 className="text-base sm:text-lg font-medium text-gray-700 mb-2">No payment methods yet</h3>
-                <p className="text-gray-500 max-w-md mb-6 text-sm px-4">
-                  You haven't added any payment methods to your account yet. Add a payment method to make checkout
-                  faster.
-                </p>
-                <button className="bg-teal-600 text-white px-6 py-3 rounded-lg hover:bg-teal-700 transition-colors shadow-md">
-                  Add Payment Method
-                </button>
-              </div>
             </div>
           </div>
         )}
@@ -960,6 +932,8 @@ function WishlistItems() {
   const { items, isLoading, removeFromWishlist } = useWishlist()
   const { addItem } = useCart()
   const [isAddingToCart, setIsAddingToCart] = useState<Record<number, boolean>>({})
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [sortOption, setSortOption] = useState<string>("default")
 
   const handleAddToCart = (item: any) => {
     setIsAddingToCart((prev) => ({ ...prev, [item.id]: true }))
@@ -977,6 +951,52 @@ function WishlistItems() {
     if (!url) return "/placeholder.svg"
     return url.startsWith("http") ? url : `${apiBaseUrl}${url}`
   }
+
+  // Get unique categories from wishlist items
+  const categories = useMemo(() => {
+    if (!items.length) return []
+    const categorySet = new Set(
+      items.map((item) =>
+        item.wishlistable.category
+          ? typeof item.wishlistable.category === "string"
+            ? item.wishlistable.category
+            : "Uncategorized"
+          : "Uncategorized",
+      ),
+    )
+    return Array.from(categorySet)
+  }, [items])
+
+  // Filter and sort items
+  const filteredItems = useMemo(() => {
+    let result = [...items]
+
+    // Apply category filter
+    if (selectedCategory) {
+      result = result.filter((item) => {
+        const itemCategory = item.wishlistable.category
+          ? typeof item.wishlistable.category === "string"
+            ? item.wishlistable.category
+            : "Uncategorized"
+          : "Uncategorized"
+        return itemCategory === selectedCategory
+      })
+    }
+
+    // Apply sorting
+    switch (sortOption) {
+      case "price-low":
+        return result.sort((a, b) => a.wishlistable.price - b.wishlistable.price)
+      case "price-high":
+        return result.sort((a, b) => b.wishlistable.price - a.wishlistable.price)
+      case "name-asc":
+        return result.sort((a, b) => a.wishlistable.name.localeCompare(b.wishlistable.name))
+      case "name-desc":
+        return result.sort((a, b) => b.wishlistable.name.localeCompare(a.wishlistable.name))
+      default:
+        return result
+    }
+  }, [items, selectedCategory, sortOption])
 
   if (isLoading) {
     return (
@@ -1009,64 +1029,189 @@ function WishlistItems() {
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-      {items.map((item) => (
-        <div
-          key={item.id}
-          className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-all group"
-        >
-          <div className="relative aspect-square">
-            <Link href={`/products/${item.wishlistable.id}`}>
-              <Image
-                src={getFullImageUrl(item.wishlistable.image_url) || "/placeholder.svg"}
-                alt={item.wishlistable.name}
-                fill
-                className="object-cover group-hover:scale-105 transition-transform duration-300"
-              />
-            </Link>
-            <button
-              onClick={() => removeFromWishlist(item.id)}
-              className="absolute top-3 right-3 p-2.5 bg-white/90 rounded-full shadow-md hover:bg-red-50 transition-colors"
-              aria-label="Remove from wishlist"
-              style={{ minHeight: "36px", minWidth: "36px" }}
-            >
-              <Trash2 className="h-4 w-4 text-red-500" />
-            </button>
+    <div>
+      {/* Wishlist header with stats and controls */}
+      <div className="mb-6 bg-gray-50 rounded-xl p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-800 flex items-center">
+              <Heart className="w-5 h-5 mr-2 text-teal-600" />
+              My Wishlist ({items.length} {items.length === 1 ? "item" : "items"})
+            </h3>
+            <p className="text-sm text-gray-500 mt-1">
+              Items you've saved for later. Add them to your cart when you're ready to purchase.
+            </p>
           </div>
 
-          <div className="p-4">
-            <Link
-              href={`/products/${item.wishlistable.id}`}
-              className="block group-hover:text-teal-600 transition-colors"
-            >
-              <h3 className="font-medium text-gray-800 mb-1 line-clamp-1">{item.wishlistable.name}</h3>
-            </Link>
+          <div className="flex flex-col sm:flex-row gap-3">
+            {/* Category filter */}
+            {categories.length > 1 && (
+              <div className="relative">
+                <select
+                  className="appearance-none bg-white border border-gray-300 rounded-lg py-2 pl-3 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  value={selectedCategory || ""}
+                  onChange={(e) => setSelectedCategory(e.target.value || null)}
+                >
+                  <option value="">All Categories</option>
+                  {categories.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                  <ChevronDown className="h-4 w-4" />
+                </div>
+              </div>
+            )}
 
-            <p className="text-sm text-gray-500 line-clamp-2 mb-3 h-10">{item.wishlistable.description}</p>
-
-            <div className="flex items-center justify-between">
-              <span className="font-bold text-teal-600">${item.wishlistable.price}</span>
-
-              <button
-                onClick={() => handleAddToCart(item)}
-                disabled={isAddingToCart[item.id] || item.wishlistable.stock_quantity === 0}
-                className={`p-3 rounded-full transition-all transform hover:scale-110 ${
-                  item.wishlistable.stock_quantity === 0
-                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                    : isAddingToCart[item.id]
-                      ? "bg-teal-600 text-white"
-                      : "bg-teal-100 text-teal-600 hover:bg-teal-600 hover:text-white"
-                }`}
-                aria-label="Add to cart"
-                style={{ minHeight: "44px", minWidth: "44px" }}
+            {/* Sort options */}
+            <div className="relative">
+              <select
+                className="appearance-none bg-white border border-gray-300 rounded-lg py-2 pl-3 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                value={sortOption}
+                onChange={(e) => setSortOption(e.target.value)}
               >
-                <ShoppingCart className="h-5 w-5" />
-              </button>
+                <option value="default">Sort by: Featured</option>
+                <option value="price-low">Price: Low to High</option>
+                <option value="price-high">Price: High to Low</option>
+                <option value="name-asc">Name: A to Z</option>
+                <option value="name-desc">Name: Z to A</option>
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                <ChevronDown className="h-4 w-4" />
+              </div>
             </div>
           </div>
         </div>
-      ))}
+      </div>
+
+      {/* Wishlist items grid with improved cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredItems.map((item) => (
+          <div
+            key={item.id}
+            className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-lg transition-all group"
+          >
+            <div className="relative aspect-square overflow-hidden">
+              <Link href={`/products/${item.wishlistable.id}`}>
+                <div className="absolute inset-0 bg-gray-100">
+                  <Image
+                    src={getFullImageUrl(item.wishlistable.image_url) || "/placeholder.svg"}
+                    alt={item.wishlistable.name}
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                </div>
+
+                {/* Quick actions overlay */}
+                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                  <div className="bg-white rounded-lg shadow-lg p-2 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                    <span className="text-xs font-medium text-gray-600 px-2">Quick View</span>
+                  </div>
+                </div>
+              </Link>
+
+              {/* Category tag */}
+              {item.wishlistable.category && (
+                <div className="absolute top-3 left-3">
+                  <span className="inline-block bg-white/90 backdrop-blur-sm text-xs font-medium text-gray-700 px-2 py-1 rounded-md shadow-sm">
+                    {typeof item.wishlistable.category === "string" ? item.wishlistable.category : "Uncategorized"}
+                  </span>
+                </div>
+              )}
+
+              {/* Remove button */}
+              <button
+                onClick={() => removeFromWishlist(item.id)}
+                className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-sm rounded-full shadow-md hover:bg-red-50 transition-colors"
+                aria-label="Remove from wishlist"
+              >
+                <Trash2 className="h-4 w-4 text-red-500" />
+              </button>
+            </div>
+
+            <div className="p-4 sm:p-5">
+              <Link
+                href={`/products/${item.wishlistable.id}`}
+                className="block group-hover:text-teal-600 transition-colors"
+              >
+                <h3 className="font-medium text-gray-800 mb-1 line-clamp-1">{item.wishlistable.name}</h3>
+              </Link>
+
+              <p className="text-sm text-gray-500 line-clamp-2 mb-4 h-10">{item.wishlistable.description}</p>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="font-bold text-gray-900 text-lg">${item.wishlistable.price}</span>
+                  
+                </div>
+
+                <button
+                  onClick={() => handleAddToCart(item)}
+                  disabled={isAddingToCart[item.id] || item.wishlistable.stock_quantity === 0}
+                  className={`flex items-center justify-center px-3 py-2 rounded-lg transition-all ${
+                    item.wishlistable.stock_quantity === 0
+                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      : isAddingToCart[item.id]
+                        ? "bg-teal-600 text-white"
+                        : "bg-teal-100 text-teal-600 hover:bg-teal-600 hover:text-white"
+                  }`}
+                  aria-label="Add to cart"
+                >
+                  {isAddingToCart[item.id] ? (
+                    <>
+                      <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
+                      Adding...
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingCart className="h-4 w-4 mr-1.5" />
+                      Add to Cart
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Stock indicator */}
+              {item.wishlistable.stock_quantity <= 5 && item.wishlistable.stock_quantity > 0 && (
+                <div className="mt-3 text-xs text-orange-600 flex items-center">
+                  <Clock className="h-3 w-3 mr-1" />
+                  Only {item.wishlistable.stock_quantity} left in stock
+                </div>
+              )}
+              {item.wishlistable.stock_quantity === 0 && (
+                <div className="mt-3 text-xs text-red-600 flex items-center">
+                  <AlertTriangle className="h-3 w-3 mr-1" />
+                  Out of stock
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Empty state for filtered results */}
+      {items.length > 0 && filteredItems.length === 0 && (
+        <div className="py-8 text-center bg-gray-50 rounded-xl mt-6">
+          <div className="bg-white inline-flex rounded-full p-3 mb-3 shadow-sm">
+            <AlertTriangle className="h-6 w-6 text-yellow-500" />
+          </div>
+          <h3 className="text-lg font-semibold mb-2">No matching items</h3>
+          <p className="text-gray-500 mb-4 max-w-md mx-auto">
+            No items match your current filter selection. Try changing your filters or viewing all items.
+          </p>
+          <button
+            onClick={() => {
+              setSelectedCategory(null)
+              setSortOption("default")
+            }}
+            className="inline-flex items-center bg-teal-600 text-white px-5 py-2.5 rounded-lg hover:bg-teal-700 transition-colors shadow-md text-sm"
+          >
+            Clear Filters
+          </button>
+        </div>
+      )}
     </div>
   )
 }
-

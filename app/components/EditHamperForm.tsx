@@ -47,9 +47,22 @@ export function EditHamperForm({ hamper, products, onSuccess }: EditHamperFormPr
     Array<{ product: Product | HamperProduct; quantity: number }>
   >([])
 
+  // Function to calculate total price from selected products
+  const calculateTotalPrice = (products: Array<{ product: Product | HamperProduct; quantity: number }>) => {
+    const total = products.reduce((sum, item) => {
+      const productPrice =
+        typeof item.product.price === "string" ? Number.parseFloat(item.product.price) : item.product.price
+      return sum + productPrice * item.quantity
+    }, 0)
+
+    // Round up to the nearest whole number
+    return Math.ceil(total)
+  }
+
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<HamperFormValues>({
     resolver: zodResolver(hamperSchema),
@@ -83,8 +96,7 @@ export function EditHamperForm({ hamper, products, onSuccess }: EditHamperFormPr
     fetchCategories()
   }, [])
 
-  // Initialize selected products from hamper data
-  // Then in the useEffect, use the existing products directly
+  // Initialize selected products from hamper data and calculate price
   useEffect(() => {
     if (hamper.products && hamper.products.length > 0) {
       const initialSelectedProducts = hamper.products.map((product) => ({
@@ -92,13 +104,17 @@ export function EditHamperForm({ hamper, products, onSuccess }: EditHamperFormPr
         quantity: product.pivot.quantity,
       }))
       setSelectedProducts(initialSelectedProducts)
+
+      // Calculate and set the price based on products
+      const calculatedPrice = calculateTotalPrice(initialSelectedProducts)
+      setValue("price", calculatedPrice.toString())
     }
 
     // Set image preview if hamper has an image
     if (hamper.image_url) {
       setImagePreviewUrl(hamper.image_url.startsWith("http") ? hamper.image_url : `${apiBaseUrl}${hamper.image_url}`)
     }
-  }, [hamper])
+  }, [hamper, setValue])
 
   useEffect(() => {
     if (searchTerm) {
@@ -140,20 +156,33 @@ export function EditHamperForm({ hamper, products, onSuccess }: EditHamperFormPr
 
   const addProduct = (product: Product) => {
     if (!selectedProducts.some((item) => item.product.id === product.id)) {
-      setSelectedProducts([...selectedProducts, { product, quantity: 1 }])
+      const updatedProducts = [...selectedProducts, { product, quantity: 1 }]
+      setSelectedProducts(updatedProducts)
+
+      // Update price when adding a product
+      const calculatedPrice = calculateTotalPrice(updatedProducts)
+      setValue("price", calculatedPrice.toString())
     }
   }
 
   const removeProduct = (productId: number) => {
-    setSelectedProducts(selectedProducts.filter((item) => item.product.id !== productId))
+    const updatedProducts = selectedProducts.filter((item) => item.product.id !== productId)
+    setSelectedProducts(updatedProducts)
+
+    // Update price when removing a product
+    const calculatedPrice = calculateTotalPrice(updatedProducts)
+    setValue("price", calculatedPrice.toString())
   }
 
   const updateProductQuantity = (productId: number, quantity: number) => {
-    setSelectedProducts(
-      selectedProducts.map((item) =>
-        item.product.id === productId ? { ...item, quantity: Math.max(1, quantity) } : item,
-      ),
+    const updatedProducts = selectedProducts.map((item) =>
+      item.product.id === productId ? { ...item, quantity: Math.max(1, quantity) } : item,
     )
+    setSelectedProducts(updatedProducts)
+
+    // Update price when changing quantity
+    const calculatedPrice = calculateTotalPrice(updatedProducts)
+    setValue("price", calculatedPrice.toString())
   }
 
   const onSubmit = async (data: HamperFormValues) => {
@@ -267,7 +296,9 @@ export function EditHamperForm({ hamper, products, onSuccess }: EditHamperFormPr
                 type="text"
                 {...register("price")}
                 className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                readOnly
               />
+              <p className="text-xs text-gray-500 mt-1">Price is automatically calculated from products</p>
               {errors.price && <p className="text-red-500 text-sm mt-1">{errors.price.message}</p>}
             </div>
 
@@ -508,4 +539,3 @@ export function EditHamperForm({ hamper, products, onSuccess }: EditHamperFormPr
     </div>
   )
 }
-
