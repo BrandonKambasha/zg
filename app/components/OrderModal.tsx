@@ -81,8 +81,19 @@ export default function OrderModal({ orderId, isOpen, onClose }: OrderModalProps
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <div className="relative bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-[1px] flex items-center justify-center p-4"
+      onClick={(e) => {
+        // Close modal when clicking the backdrop (outside the modal content)
+        if (e.target === e.currentTarget) {
+          onClose()
+        }
+      }}
+    >
+      <div
+        className="relative bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Close button */}
         <button
           onClick={onClose}
@@ -352,4 +363,3 @@ export default function OrderModal({ orderId, isOpen, onClose }: OrderModalProps
     </div>
   )
 }
-
