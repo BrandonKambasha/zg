@@ -1,27 +1,5 @@
 import axios from "../axios"
-
-interface FeedbackData {
-  type: string
-  subject: string
-  message: string
-  user_id?: string | number
-  name?: string
-  email?: string
-  recaptchaToken?: string
-}
-
-interface Feedback extends FeedbackData {
-  id: string
-  created_at: string
-  updated_at: string
-  status: string
-  admin_notes?: string
-  user?: {
-    id: string
-    name: string
-    email: string
-  }
-}
+import type { Feedback, FeedbackData, FeedbackStatus } from "../../Types"
 
 export const submitFeedback = async (data: FeedbackData): Promise<Feedback> => {
   try {
@@ -56,7 +34,7 @@ export const getMyFeedback = async (): Promise<Feedback[]> => {
   }
 }
 
-export const getFeedbackById = async (id: string): Promise<Feedback> => {
+export const getFeedbackById = async (id: string | number): Promise<Feedback> => {
   try {
     const response = await axios.get(`/feedback/${id}`)
     return response.data
@@ -65,7 +43,11 @@ export const getFeedbackById = async (id: string): Promise<Feedback> => {
   }
 }
 
-export const updateFeedbackStatus = async (id: string, status: string, admin_notes?: string): Promise<Feedback> => {
+export const updateFeedbackStatus = async (
+  id: string | number,
+  status: FeedbackStatus,
+  admin_notes?: string,
+): Promise<Feedback> => {
   try {
     const response = await axios.put(`/feedback/${id}`, { status, admin_notes })
     return response.data
@@ -74,7 +56,7 @@ export const updateFeedbackStatus = async (id: string, status: string, admin_not
   }
 }
 
-export const deleteFeedback = async (id: string): Promise<void> => {
+export const deleteFeedback = async (id: string | number): Promise<void> => {
   try {
     await axios.delete(`/feedback/${id}`)
   } catch (error: any) {

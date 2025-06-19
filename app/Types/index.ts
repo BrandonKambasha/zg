@@ -196,3 +196,35 @@ export interface ShippingFormValues {
   exact_fee?: number | null
 }
 
+export type FeedbackType = "suggestion" | "complaint" | "question" | "praise" | "other"
+export type FeedbackStatus = "pending" | "reviewed" | "resolved"
+
+export interface FeedbackUser {
+  id: string | number
+  name: string
+  email: string
+}
+
+export interface Feedback {
+  id: string | number
+  user_id?: string | number
+  type: FeedbackType
+  subject: string
+  message: string
+  status: FeedbackStatus
+  admin_notes?: string
+  created_at: string
+  updated_at: string
+  user?: FeedbackUser
+}
+
+export interface FeedbackData {
+  type: FeedbackType
+  subject: string
+  message: string
+  user_id?: string | number
+  name?: string
+  email?: string
+  recaptchaToken?: string
+}
+

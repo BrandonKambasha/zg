@@ -63,13 +63,8 @@ export default function CartPage() {
       return
     }
 
-    if (!user) {
-      toast.error("Please log in to checkout")
-      router.push("/login?redirect=/cart")
-      return
-    }
-
-    router.push("/checkout")
+    // Redirect to checkout options page regardless of authentication status
+    router.push("/checkout-options")
   }
 
   useEffect(() => {
@@ -430,4 +425,3 @@ export default function CartPage() {
     </div>
   )
 }
-

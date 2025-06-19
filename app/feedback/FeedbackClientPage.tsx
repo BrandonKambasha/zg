@@ -29,6 +29,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import Link from "next/link"
 import toast from "react-hot-toast"
 import Script from "next/script"
+import type { FeedbackType } from "../Types"
 
 export default function FeedbackClientPage() {
   const { user, isAuthenticated, isLoading } = useAuth()
@@ -190,6 +191,7 @@ export default function FeedbackClientPage() {
       // Prepare feedback data
       const feedbackData = {
         ...formData,
+        type: formData.type as FeedbackType,
         // If user is authenticated, use their ID, otherwise send name and email
         user_id: isAuthenticated && user?.id ? String(user.id) : undefined,
         // Always include name and email in the request
