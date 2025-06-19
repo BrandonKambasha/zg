@@ -1,4 +1,4 @@
-import axios from '../axios'
+import axios from "../axios"
 
 export interface GuestOrderData {
   email: string
@@ -63,12 +63,12 @@ export interface GuestOrderTrackingData {
 // Create a guest order
 export async function createGuestOrder(orderData: GuestOrderData): Promise<GuestOrderResponse> {
   try {
-    console.log('Creating guest order with data:', orderData)
-    const response = await axios.post('/guest/orders', orderData)
-    console.log('Guest order created successfully:', response.data)
+    console.log("Creating guest order with data:", orderData)
+    const response = await axios.post("/guest/orders", orderData)
+    console.log("Guest order created successfully:", response.data)
     return response.data
   } catch (error) {
-    console.error('Error creating guest order:', error)
+    console.error("Error creating guest order:", error)
     throw error
   }
 }
@@ -90,15 +90,15 @@ export async function createGuestCheckoutSession(orderData: {
   guest_name: string
 }): Promise<{ checkout_url: string; order_id: string }> {
   try {
-    console.log('Creating guest checkout session with data:', orderData)
-    const response = await axios.post('/guest/checkout/create-session', orderData)
-    console.log('Guest checkout session created:', response.data)
+    console.log("Creating guest checkout session with data:", orderData)
+    const response = await axios.post("/guest/checkout/create-session", orderData)
+    console.log("Guest checkout session created:", response.data)
     return {
       checkout_url: response.data.checkout_url,
-      order_id: response.data.order_id.toString()
+      order_id: response.data.order_id.toString(),
     }
   } catch (error) {
-    console.error('Error creating guest checkout session:', error)
+    console.error("Error creating guest checkout session:", error)
     throw error
   }
 }
@@ -107,12 +107,15 @@ export async function createGuestCheckoutSession(orderData: {
 export async function getGuestCheckoutSessionStatus(sessionId: string): Promise<{
   status: string
   order?: GuestOrderResponse
+  payment_status?: string
 }> {
   try {
+    console.log("Getting guest checkout session status for:", sessionId)
     const response = await axios.get(`/guest/checkout/session-status?session_id=${sessionId}`)
+    console.log("Guest checkout session status response:", response.data)
     return response.data
   } catch (error) {
-    console.error('Error getting guest checkout session status:', error)
+    console.error("Error getting guest checkout session status:", error)
     throw error
   }
 }
@@ -120,12 +123,12 @@ export async function getGuestCheckoutSessionStatus(sessionId: string): Promise<
 // Track guest order
 export async function trackGuestOrder(trackingData: GuestOrderTrackingData): Promise<GuestOrderResponse> {
   try {
-    console.log('Tracking guest order with data:', trackingData)
-    const response = await axios.post('/guest/orders/track', trackingData)
-    console.log('Guest order tracking result:', response.data)
+    console.log("Tracking guest order with data:", trackingData)
+    const response = await axios.post("/guest/orders/track", trackingData)
+    console.log("Guest order tracking result:", response.data)
     return response.data
   } catch (error) {
-    console.error('Error tracking guest order:', error)
+    console.error("Error tracking guest order:", error)
     throw error
   }
 }
@@ -136,12 +139,12 @@ export async function cancelGuestOrder(orderData: GuestOrderTrackingData): Promi
   order: GuestOrderResponse
 }> {
   try {
-    console.log('Cancelling guest order with data:', orderData)
-    const response = await axios.post('/guest/orders/cancel', orderData)
-    console.log('Guest order cancelled:', response.data)
+    console.log("Cancelling guest order with data:", orderData)
+    const response = await axios.post("/guest/orders/cancel", orderData)
+    console.log("Guest order cancelled:", response.data)
     return response.data
   } catch (error) {
-    console.error('Error cancelling guest order:', error)
+    console.error("Error cancelling guest order:", error)
     throw error
   }
 }
@@ -150,26 +153,26 @@ export async function cancelGuestOrder(orderData: GuestOrderTrackingData): Promi
 export async function validateGuestCheckoutInfo(
   email: string,
   phone: string,
-  address: string
+  address: string,
 ): Promise<{ success: boolean; message?: string }> {
   // Simple client-side validation since there's no backend endpoint for this
   try {
-    if (!email || !email.includes('@')) {
-      return { success: false, message: 'Please enter a valid email address' }
+    if (!email || !email.includes("@")) {
+      return { success: false, message: "Please enter a valid email address" }
     }
-    
+
     if (!phone || phone.length < 10) {
-      return { success: false, message: 'Please enter a valid phone number' }
+      return { success: false, message: "Please enter a valid phone number" }
     }
-    
+
     if (!address || address.length < 10) {
-      return { success: false, message: 'Please enter a complete shipping address' }
+      return { success: false, message: "Please enter a complete shipping address" }
     }
-    
+
     return { success: true }
   } catch (error) {
-    console.error('Error validating guest checkout info:', error)
-    return { success: false, message: 'Validation failed' }
+    console.error("Error validating guest checkout info:", error)
+    return { success: false, message: "Validation failed" }
   }
 }
 
@@ -192,14 +195,14 @@ export async function getDeliveryEstimate(address: string): Promise<{
 export async function createGuestPaymentIntent(
   amount: number,
   orderId: string,
-  email: string
+  email: string,
 ): Promise<{ clientSecret: string }> {
   try {
     // This would need to be implemented in your Laravel backend if you want direct Stripe integration
     // For now, throw an error since this endpoint doesn't exist
-    throw new Error('Direct payment intent creation not implemented. Use checkout session instead.')
+    throw new Error("Direct payment intent creation not implemented. Use checkout session instead.")
   } catch (error) {
-    console.error('Error creating guest payment intent:', error)
+    console.error("Error creating guest payment intent:", error)
     throw error
   }
 }
