@@ -2,24 +2,39 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import axios from "../lib/axios"
+import { useCart } from "../hooks/useCart"
 
 interface GuestOrder {
   id: number
   order_number: string
   status: string
-  total: number
+  total_amount: number
   shipping_address: string
   created_at: string
   email: string
-  first_name: string
-  last_name: string
-  items?: {
+  guest_name: string
+  phone_number: string
+  zim_contact: string
+  zim_name: string
+  shipping_cost: number
+  order_items?: {
     id: number
-    product_name: string
+    product?: {
+      id: number
+      name: string
+      price: number
+      image_url?: string
+    }
+    hamper?: {
+      id: number
+      name: string
+      price: number
+      image_url?: string
+    }
     quantity: number
     price: number
   }[]
@@ -28,22 +43,31 @@ interface GuestOrder {
 export default function GuestOrderTrackingContent() {
   const searchParams = useSearchParams()
   const initialOrderNumber = searchParams.get("orderNumber") || ""
+  const initialEmail = searchParams.get("email") || ""
+  const { addItem } = useCart()
 
   const [orderNumber, setOrderNumber] = useState(initialOrderNumber)
-  const [email, setEmail] = useState("")
+  const [email, setEmail] = useState(initialEmail)
   const [order, setOrder] = useState<GuestOrder | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  // Auto-submit if both orderNumber and email are provided via URL params
+  useEffect(() => {
+    if (initialOrderNumber && initialEmail) {
+      handleSubmit(null, true)
+    }
+  }, [initialOrderNumber, initialEmail])
+
+  const handleSubmit = async (e: React.FormEvent | null, autoSubmit = false) => {
+    if (e) e.preventDefault()
     setError("")
     setLoading(true)
     setSuccess(false)
 
     try {
-      const response = await axios.post("/api/guest/orders/track", {
+      const response = await axios.post("/guest/orders/track", {
         orderNumber,
         email,
       })
@@ -95,6 +119,7 @@ export default function GuestOrderTrackingContent() {
                 onChange={(e) => setOrderNumber(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                 required
+                placeholder="e.g., GO-YTBLODG4 or ZG-000123"
               />
             </div>
 
@@ -160,7 +185,7 @@ export default function GuestOrderTrackingContent() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <h3 className="text-sm font-medium text-gray-500">Order Number</h3>
-                  <p className="font-medium">{order.order_number}</p>
+                  <p className="font-medium">{order.order_number || `#${order.id}`}</p>
                 </div>
                 <div>
                   <h3 className="text-sm font-medium text-gray-500">Date</h3>
@@ -168,7 +193,7 @@ export default function GuestOrderTrackingContent() {
                 </div>
                 <div>
                   <h3 className="text-sm font-medium text-gray-500">Total</h3>
-                  <p className="font-medium">${order.total.toFixed(2)}</p>
+                  <p className="font-medium">${order.total_amount}</p>
                 </div>
                 <div>
                   <h3 className="text-sm font-medium text-gray-500">Status</h3>
@@ -288,22 +313,45 @@ export default function GuestOrderTrackingContent() {
               </div>
             </div>
 
-            {order.items && order.items.length > 0 && (
+            {order.order_items && order.order_items.length > 0 && (
               <div className="mb-6">
                 <h3 className="text-lg font-medium mb-3">Order Items</h3>
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
                       <tr className="border-b">
-                        <th className="text-left py-3 px-2">Product</th>
+                        <th className="text-left py-3 px-2">Item</th>
                         <th className="text-center py-3 px-2">Quantity</th>
                         <th className="text-right py-3 px-2">Price</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {order.items.map((item) => (
+                      {order.order_items.map((item) => (
                         <tr key={item.id} className="border-b">
-                          <td className="py-3 px-2">{item.product_name}</td>
+                          <td className="py-3 px-2">
+                            {item.product?.id ? (
+                              <Link
+                                href={`/products/${item.product.id}`}
+                                className="text-green-600 hover:text-green-700 hover:underline"
+                              >
+                                {item.product.name}
+                              </Link>
+                            ) : item.hamper?.id ? (
+                              <Link
+                                href={`/hampers/${item.hamper.id}`}
+                                className="text-green-600 hover:text-green-700 hover:underline"
+                              >
+                                <span className="inline-flex items-center">
+                                  <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
+                                  </svg>
+                                  {item.hamper.name} (Hamper)
+                                </span>
+                              </Link>
+                            ) : (
+                              <span className="text-gray-500">Item not available</span>
+                            )}
+                          </td>
                           <td className="text-center py-3 px-2">{item.quantity}</td>
                           <td className="text-right py-3 px-2">${(item.price * item.quantity).toFixed(2)}</td>
                         </tr>

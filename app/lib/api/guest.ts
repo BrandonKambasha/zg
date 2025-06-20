@@ -30,7 +30,8 @@ export interface GuestOrderResponse {
   shipping_cost: number
   instructions?: string
   created_at: string
-  orderItems: Array<{
+  order_number?: string
+  order_items: Array<{
     id: number
     quantity: number
     price: number
@@ -56,7 +57,7 @@ export interface GuestOrderResponse {
 }
 
 export interface GuestOrderTrackingData {
-  order_number: string
+  orderNumber: string
   email: string
 }
 
@@ -126,7 +127,7 @@ export async function trackGuestOrder(trackingData: GuestOrderTrackingData): Pro
     console.log("Tracking guest order with data:", trackingData)
     const response = await axios.post("/guest/orders/track", trackingData)
     console.log("Guest order tracking result:", response.data)
-    return response.data
+    return response.data.order
   } catch (error) {
     console.error("Error tracking guest order:", error)
     throw error
@@ -145,6 +146,32 @@ export async function cancelGuestOrder(orderData: GuestOrderTrackingData): Promi
     return response.data
   } catch (error) {
     console.error("Error cancelling guest order:", error)
+    throw error
+  }
+}
+
+// Get all guest orders (admin only)
+export async function getAllGuestOrders(): Promise<GuestOrderResponse[]> {
+  try {
+    console.log("Fetching all guest orders for admin")
+    const response = await axios.get("/guest/orders")
+    console.log("Guest orders fetched successfully:", response.data)
+    return response.data
+  } catch (error) {
+    console.error("Error fetching guest orders:", error)
+    throw error
+  }
+}
+
+// Update guest order status (admin only)
+export async function updateGuestOrderStatus(orderId: number, status: string): Promise<GuestOrderResponse> {
+  try {
+    console.log(`Updating guest order ${orderId} status to:`, status)
+    const response = await axios.put(`/guest/orders/${orderId}/status`, { status })
+    console.log("Guest order status updated successfully:", response.data)
+    return response.data
+  } catch (error) {
+    console.error("Error updating guest order status:", error)
     throw error
   }
 }

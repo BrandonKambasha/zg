@@ -157,6 +157,9 @@ export default function GuestCheckoutConfirmationContent() {
   const shippingCost = order.shipping_cost ?? 0
   const subtotal = order.total_amount - shippingCost
 
+  // Get order number for tracking
+  const orderNumber = order.order_number || `#${order.id}`
+
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="max-w-3xl mx-auto">
@@ -173,7 +176,7 @@ export default function GuestCheckoutConfirmationContent() {
             with us — please check there to make sure you don't miss any updates!
           </p>
           <p className="text-gray-600">
-            Order ID: <span className="font-medium">#{order.id}</span>
+            Order Number: <span className="font-medium">{orderNumber}</span>
           </p>
         </div>
 
@@ -196,8 +199,8 @@ export default function GuestCheckoutConfirmationContent() {
             <div className="flex items-start">
               <ShoppingBag className="h-5 w-5 text-gray-400 mr-2 mt-0.5" />
               <div>
-                <p className="text-sm text-gray-500">Order ID</p>
-                <p className="font-medium">#{order.id}</p>
+                <p className="text-sm text-gray-500">Order Number</p>
+                <p className="font-medium">{orderNumber}</p>
               </div>
             </div>
           </div>
@@ -234,8 +237,8 @@ export default function GuestCheckoutConfirmationContent() {
           <div className="border-t border-gray-200 pt-4">
             <h3 className="font-medium mb-3">Items Ordered</h3>
             <div className="space-y-4">
-              {order.orderItems && order.orderItems.length > 0 ? (
-                order.orderItems.map((item) => (
+              {order.order_items && order.order_items.length > 0 ? (
+                order.order_items.map((item) => (
                   <div key={item.id} className="flex items-center">
                     <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border border-gray-200 mr-4">
                       {item.product?.image_url || item.hamper?.image_url ? (
@@ -344,7 +347,7 @@ export default function GuestCheckoutConfirmationContent() {
 
         <div className="flex flex-col sm:flex-row justify-center gap-4">
           <Link
-            href="/guest-order-tracking"
+            href={`/guest-order-tracking?orderNumber=${encodeURIComponent(orderNumber)}&email=${encodeURIComponent(order.email)}`}
             className="bg-teal-600 text-white px-6 py-3 rounded-md hover:bg-teal-700 transition text-center"
           >
             Track Your Order
