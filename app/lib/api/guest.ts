@@ -10,6 +10,7 @@ export interface GuestOrderData {
   }>
   shipping_address: string
   zim_contact: string
+  zim_contact_id: string // Added this field
   phone_number: string
   zim_name: string
   delivery_zone: number
@@ -25,6 +26,7 @@ export interface GuestOrderResponse {
   status: string
   shipping_address: string
   zim_contact: string
+  zim_contact_id: string // Added this field
   zim_name: string
   phone_number: string
   shipping_cost: number
@@ -83,6 +85,7 @@ export async function createGuestCheckoutSession(orderData: {
   }>
   shipping_address: string
   zim_contact: string
+  zim_contact_id: string // Added this field
   phone_number: string
   zim_name: string
   delivery_zone: number
@@ -181,6 +184,7 @@ export async function validateGuestCheckoutInfo(
   email: string,
   phone: string,
   address: string,
+  zimContactId: string, // Added this parameter
 ): Promise<{ success: boolean; message?: string }> {
   // Simple client-side validation since there's no backend endpoint for this
   try {
@@ -194,6 +198,10 @@ export async function validateGuestCheckoutInfo(
 
     if (!address || address.length < 10) {
       return { success: false, message: "Please enter a complete shipping address" }
+    }
+
+    if (!zimContactId || zimContactId.length < 5) {
+      return { success: false, message: "Please enter a valid Zimbabwe contact ID number" }
     }
 
     return { success: true }

@@ -335,6 +335,7 @@ export default function OrderModal({ orderId, isOpen, onClose }: OrderModalProps
                         <p>
                           {order.zim_name || "Recipient"}: {order.zim_contact}
                         </p>
+                        {order.zim_contact_id && <p className="text-sm text-gray-600">ID: {order.zim_contact_id}</p>}
                       </div>
                     )}
                   </div>

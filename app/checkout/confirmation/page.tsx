@@ -192,6 +192,7 @@ export default function OrderConfirmationPage() {
                       <p className="text-gray-700">
                         {order.zim_name || "Recipient"}: {order.zim_contact}
                       </p>
+                      {order.zim_contact_id && <p className="text-gray-700 text-sm">ID: {order.zim_contact_id}</p>}
                     </div>
                   )}
                 </div>

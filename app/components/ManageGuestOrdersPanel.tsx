@@ -34,6 +34,7 @@ interface GuestOrder {
     quantity: number
     price: number
   }>
+  zim_contact_id?: string
 }
 
 export function ManageGuestOrdersPanel() {
@@ -403,6 +404,11 @@ function GuestOrderModal({
                 <p>
                   <strong>Zimbabwe Contact:</strong> {order.zim_name} ({order.zim_contact})
                 </p>
+                {order.zim_contact_id && (
+                  <p>
+                    <strong>Zimbabwe Contact ID:</strong> {order.zim_contact_id}
+                  </p>
+                )}
               </div>
             </div>
 

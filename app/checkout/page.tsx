@@ -86,6 +86,7 @@ function CheckoutContent() {
     location: "",
     country: "Zimbabwe",
     zim_contact: "",
+    zim_contact_id: "",
     zim_name: "",
     delivery_zone: null,
     exact_distance: null,
@@ -212,7 +213,9 @@ function CheckoutContent() {
       updatedData.phone &&
       updatedData.delivery_zone &&
       updatedData.zim_name &&
-      updatedData.zim_contact
+      updatedData.zim_contact&&
+      updatedData.zim_contact_id
+
     ) {
       // Immediately proceed to the payment step
       setStep(2)
@@ -247,6 +250,7 @@ function CheckoutContent() {
         phone_number: shippingInfo.phone,
         payment_method: "credit_card", // Always use credit_card for Stripe
         zim_name: shippingInfo.zim_name,
+        zim_contact_id: shippingInfo.zim_contact_id, 
         delivery_zone:
           shippingInfo.exact_fee ||
           (shippingInfo.delivery_zone ? getShippingCost(shippingInfo.delivery_zone, null) : SHIPPING_COST),

@@ -59,7 +59,6 @@ export const getCategories = async (): Promise<Category[]> => {
 
     // Log each category to help with debugging
     response.data.forEach((category, index) => {
-      console.log(`Category ${index + 1}:`, category.id, category.name, category.image_url)
     })
 
     return response.data

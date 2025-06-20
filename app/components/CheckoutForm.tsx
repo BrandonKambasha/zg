@@ -17,6 +17,7 @@ import {
   ChevronDown,
   Info,
   Loader2,
+  CreditCard,
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 
@@ -35,6 +36,7 @@ const shippingSchema = z.object({
   delivery_zone: z.number().nullable(), // Remove optional() to ensure it's never undefined
   exact_distance: z.number().nullable().optional(),
   exact_fee: z.number().nullable().optional(),
+  zim_contact_id: z.string().min(2, "Zimbabwe contact ID is required"),
 })
 
 type ShippingFormValues = z.infer<typeof shippingSchema>
@@ -90,6 +92,7 @@ export default function CheckoutForm({ initialValues, onSubmit, isSubmitting }: 
   const phone = watch("phone")
   const zim_name = watch("zim_name")
   const zim_contact = watch("zim_contact")
+  const zim_contact_id = watch("zim_contact_id")
 
   // Calculate form progress
   useEffect(() => {
@@ -203,7 +206,7 @@ export default function CheckoutForm({ initialValues, onSubmit, isSubmitting }: 
         fieldsToValidate = ["house_number", "street", "location", "city", "country"]
         break
       case "zimbabwe":
-        fieldsToValidate = ["zim_name", "zim_contact"]
+        fieldsToValidate = ["zim_name", "zim_contact", "zim_contact_id"]
         break
     }
 
@@ -709,15 +712,17 @@ export default function CheckoutForm({ initialValues, onSubmit, isSubmitting }: 
                 className="overflow-hidden"
               >
                 <div className="p-6">
-                  <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6 rounded-r-md">
+                  {/* Enhanced warning message */}
+                  <div className="bg-amber-50 border-l-4 border-amber-400 p-4 mb-6 rounded-r-md">
                     <div className="flex">
                       <div className="flex-shrink-0">
-                        <Info className="h-5 w-5 text-blue-400" />
+                        <Info className="h-5 w-5 text-amber-400" />
                       </div>
                       <div className="ml-3">
-                        <p className="text-sm text-blue-700">
-                          Please provide a local contact person who can
-                          receive your delivery in Zimbabwe.
+                        <h4 className="text-sm font-medium text-amber-800 mb-1">Important: ID Verification Required</h4>
+                        <p className="text-sm text-amber-700">
+                          Please provide accurate contact information for the recipient in Zimbabwe. We verify the ID
+                          number with the contact person before delivery to ensure secure package handling.
                         </p>
                       </div>
                     </div>
@@ -779,6 +784,34 @@ export default function CheckoutForm({ initialValues, onSubmit, isSubmitting }: 
                         </p>
                       )}
                     </div>
+
+                    <div className="space-y-2">
+                      <label htmlFor="zim_contact_id" className="block text-sm font-medium text-gray-700">
+                        Contact ID Number*
+                      </label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <CreditCard className="h-4 w-4 text-gray-400" />
+                        </div>
+                        <input
+                          id="zim_contact_id"
+                          type="text"
+                          {...register("zim_contact_id")}
+                          className={`w-full pl-10 p-2.5 border rounded-md focus:outline-none focus:ring-2 transition-colors ${
+                            errors.zim_contact_id
+                              ? "border-red-300 focus:ring-red-500"
+                              : "border-gray-300 focus:ring-teal-500 focus:border-teal-500"
+                          }`}
+                          placeholder="63-123456A12"
+                        />
+                      </div>
+                      {errors.zim_contact_id && (
+                        <p className="text-red-500 text-sm mt-1 flex items-center">
+                          <AlertCircle className="h-3.5 w-3.5 mr-1" />
+                          {errors.zim_contact_id.message}
+                        </p>
+                      )}
+                    </div>
                   </div>
 
                   <div className="mt-6 flex justify-between">
@@ -802,20 +835,30 @@ export default function CheckoutForm({ initialValues, onSubmit, isSubmitting }: 
             )}
           </AnimatePresence>
 
-          {activeSection !== "zimbabwe" && zim_name && zim_contact && !errors.zim_name && !errors.zim_contact && (
-            <div className="px-6 py-3 bg-gray-50 border-t border-gray-200">
-              <div className="flex flex-col sm:flex-row sm:justify-between text-sm">
-                <div className="flex items-center mb-2 sm:mb-0">
-                  <User className="h-4 w-4 text-gray-500 mr-2" />
-                  <span className="text-gray-700">{zim_name}</span>
-                </div>
-                <div className="flex items-center">
-                  <Phone className="h-4 w-4 text-gray-500 mr-2" />
-                  <span className="text-gray-700">{zim_contact}</span>
+          {activeSection !== "zimbabwe" &&
+            zim_name &&
+            zim_contact &&
+            zim_contact_id &&
+            !errors.zim_name &&
+            !errors.zim_contact &&
+            !errors.zim_contact_id && (
+              <div className="px-6 py-3 bg-gray-50 border-t border-gray-200">
+                <div className="flex flex-col sm:flex-row sm:justify-between text-sm">
+                  <div className="flex items-center mb-2 sm:mb-0">
+                    <User className="h-4 w-4 text-gray-500 mr-2" />
+                    <span className="text-gray-700">{zim_name}</span>
+                  </div>
+                  <div className="flex items-center mb-2 sm:mb-0">
+                    <Phone className="h-4 w-4 text-gray-500 mr-2" />
+                    <span className="text-gray-700">{zim_contact}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <CreditCard className="h-4 w-4 text-gray-500 mr-2" />
+                    <span className="text-gray-700 text-xs">ID: {zim_contact_id}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
         </div>
 
         {/* Hidden fields for delivery zone, exact distance and fee */}
@@ -1081,6 +1124,10 @@ export default function CheckoutForm({ initialValues, onSubmit, isSubmitting }: 
                         <div className="flex items-center">
                           <Phone className="h-4 w-4 text-gray-500 mr-2" />
                           <span className="text-gray-700">{zim_contact}</span>
+                        </div>
+                        <div className="flex items-center">
+                          <CreditCard className="h-4 w-4 text-gray-500 mr-2" />
+                          <span className="text-gray-700 text-sm">ID: {zim_contact_id}</span>
                         </div>
                       </div>
                     </div>

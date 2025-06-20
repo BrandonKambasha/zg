@@ -96,6 +96,7 @@ export interface Order {
   created_at: string
   shipping_address?: string
   zim_contact?: string
+  zim_contact_id?:string
   zim_name?: string
   shipping_cost: number
   updated_at: string
@@ -174,6 +175,7 @@ export interface ShippingInfo {
   location: string
   country: string
   zim_contact: string
+  zim_contact_id: string // Add this
   zim_name: string
   delivery_zone: number | null
   exact_distance?: number | null
@@ -190,6 +192,7 @@ export interface ShippingFormValues {
   location: string
   country: string
   zim_contact: string
+  zim_contact_id: string // Add this
   zim_name: string
   delivery_zone: number | null
   exact_distance?: number | null
@@ -227,4 +230,3 @@ export interface FeedbackData {
   email?: string
   recaptchaToken?: string
 }
-

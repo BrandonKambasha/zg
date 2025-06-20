@@ -173,6 +173,15 @@ export default function AdminOrderModal({ orderId, isOpen, onClose }: AdminOrder
                             </div>
                           </div>
                         )}
+                        {order.zim_contact_id && (
+                          <div className="flex items-start">
+                            <CreditCard className="h-4 w-4 text-gray-400 mt-0.5 mr-1.5 flex-shrink-0" />
+                            <div>
+                              <p className="text-xs text-gray-500">Zimbabwe Contact ID</p>
+                              <p className="font-medium">{order.zim_contact_id}</p>
+                            </div>
+                          </div>
+                        )}
                         <div className="text-xs text-gray-500">
                           <p>Customer ID: {order.user.id}</p>
                           <p>Account created: {new Date(order.user.created_at).toLocaleDateString()}</p>
@@ -518,4 +527,3 @@ export default function AdminOrderModal({ orderId, isOpen, onClose }: AdminOrder
     </div>
   )
 }
-

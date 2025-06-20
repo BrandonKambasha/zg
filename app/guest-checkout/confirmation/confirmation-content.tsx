@@ -211,6 +211,7 @@ export default function GuestCheckoutConfirmationContent() {
             <p className="text-gray-700">{order.guest_name}</p>
             <p className="text-gray-700">{order.email}</p>
             <p className="text-gray-700">{order.phone_number}</p>
+
           </div>
 
           {/* Shipping Address */}
@@ -228,6 +229,8 @@ export default function GuestCheckoutConfirmationContent() {
                   <p className="text-gray-700">
                     {order.zim_name || "Recipient"}: {order.zim_contact}
                   </p>
+                  <p className="text-sm text-gray-500">Recipient ID:{order.zim_contact_id}</p>
+
                 </div>
               )}
             </div>

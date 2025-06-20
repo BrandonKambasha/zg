@@ -50,6 +50,7 @@ interface ShippingInfo {
   delivery_zone: number | null
   exact_distance: number | null
   exact_fee: number | null
+  zim_contact_id: string
 }
 
 interface FormErrors {
@@ -75,6 +76,7 @@ export default function GuestCheckoutPage() {
     delivery_zone: null,
     exact_distance: null,
     exact_fee: null,
+    zim_contact_id: "",
   })
   const [paymentMethod, setPaymentMethod] = useState("credit_card")
   const [orderId, setOrderId] = useState<string | null>(null)
@@ -175,6 +177,7 @@ export default function GuestCheckoutPage() {
     if (!shippingInfo.zim_contact.trim()) errors.zim_contact = "Recipient contact is required"
     if (!shippingInfo.delivery_zone && !isMapLoaded)
       errors.delivery_zone = "Please select your delivery location on the map"
+    if (!shippingInfo.zim_contact_id.trim()) errors.zim_contact_id = "Recipient ID is required"
 
     setFormErrors(errors)
     return Object.keys(errors).length === 0
@@ -201,6 +204,7 @@ export default function GuestCheckoutPage() {
         shippingInfo.email,
         shippingInfo.phone,
         `${shippingInfo.house_number}, ${shippingInfo.street}, ${shippingInfo.location}, ${shippingInfo.city}, ${shippingInfo.country}`,
+        shippingInfo.zim_contact_id
       )
 
       if (!validationResult.success) {
@@ -276,6 +280,7 @@ export default function GuestCheckoutPage() {
           shippingInfo.exact_fee ||
           (shippingInfo.delivery_zone ? getShippingCost(shippingInfo.delivery_zone, null) : SHIPPING_COST),
         instructions: instructions.trim() || undefined,
+        zim_contact_id: shippingInfo.zim_contact_id,
       }
 
       const order = await createGuestOrder(orderData)
@@ -308,6 +313,7 @@ export default function GuestCheckoutPage() {
           shippingInfo.exact_fee ||
           (shippingInfo.delivery_zone ? getShippingCost(shippingInfo.delivery_zone, null) : SHIPPING_COST),
         instructions: instructions.trim() || undefined,
+        zim_contact_id: shippingInfo.zim_contact_id,
       }
 
       console.log("Sending checkout data:", checkoutData)
@@ -781,6 +787,26 @@ export default function GuestCheckoutPage() {
                     <h3 className="text-lg font-medium mb-4 pb-2 border-b border-gray-200">
                       Zimbabwe Recipient Information
                     </h3>
+
+                    {/* Enhanced warning message */}
+                    <div className="bg-amber-50 border-l-4 border-amber-400 p-4 mb-6 rounded-r-md">
+                      <div className="flex">
+                        <div className="flex-shrink-0">
+                          <Info className="h-5 w-5 text-amber-400" />
+                        </div>
+                        <div className="ml-3">
+                          <h4 className="text-sm font-medium text-amber-800 mb-1">
+                            Important: ID Verification Required
+                          </h4>
+                          <p className="text-sm text-amber-700">
+                            Please ensure all Zimbabwe contact information is accurate. We verify the recipient's ID
+                            number with the contact person before delivery. Incorrect information may delay or prevent
+                            delivery.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label htmlFor="zim_name" className="block text-sm font-medium text-gray-700 mb-1">
@@ -817,6 +843,25 @@ export default function GuestCheckoutPage() {
                         />
                         {formErrors.zim_contact && (
                           <p className="text-red-500 text-xs mt-1">{formErrors.zim_contact}</p>
+                        )}
+                      </div>
+                      <div>
+                        <label htmlFor="zim_contact_id" className="block text-sm font-medium text-gray-700 mb-1">
+                          Recipient ID Number *
+                        </label>
+                        <input
+                          type="text"
+                          id="zim_contact_id"
+                          name="zim_contact_id"
+                          value={shippingInfo.zim_contact_id}
+                          onChange={handleInputChange}
+                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 ${
+                            formErrors.zim_contact_id ? "border-red-500" : "border-gray-300"
+                          }`}
+                          placeholder="63-123456A12"
+                        />
+                        {formErrors.zim_contact_id && (
+                          <p className="text-red-500 text-xs mt-1">{formErrors.zim_contact_id}</p>
                         )}
                       </div>
                     </div>
@@ -933,6 +978,7 @@ export default function GuestCheckoutPage() {
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <p className="font-medium">{shippingInfo.zim_name}</p>
                       <p>{shippingInfo.zim_contact}</p>
+                      <p className="text-sm text-gray-600">ID: {shippingInfo.zim_contact_id}</p>
                     </div>
                   </div>
 
