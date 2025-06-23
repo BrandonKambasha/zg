@@ -30,7 +30,6 @@ import {
 import { motion, AnimatePresence } from "framer-motion"
 import { apiBaseUrl } from "../lib/axios"
 import DeliveryZoneMap from "../components/DeliveryZoneMap"
-import PaymentMethodSelector from "../components/PaymentMethodSelector"
 import { createGuestCheckoutSession, validateGuestCheckoutInfo } from "../lib/api/guest"
 
 // Base shipping cost constant
@@ -63,8 +62,6 @@ export default function GuestCheckoutPage() {
   const [mounted, setMounted] = useState(false)
   const [showMobileOrderSummary, setShowMobileOrderSummary] = useState(false)
   const [instructions, setInstructions] = useState("")
-  const [paymentMethod, setPaymentMethod] = useState("credit_card")
-
   // Accordion state
   const [showMap, setShowMap] = useState(false)
   const [deliveryZone, setDeliveryZone] = useState<number | null>(null)
@@ -208,11 +205,11 @@ export default function GuestCheckoutPage() {
     setZoneConfirmed(zoneIsConfirmed)
     setZoneError(null)
 
-    // Auto-advance to payment if zone is confirmed
+    // Auto-advance to review if zone is confirmed
     if (zoneIsConfirmed) {
-      setActiveSection("payment")
+      setActiveSection("review")
       setTimeout(() => {
-        const element = document.getElementById("payment")
+        const element = document.getElementById("review")
         if (element) {
           const yOffset = -20
           const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset
@@ -263,24 +260,6 @@ export default function GuestCheckoutPage() {
         }
       }, 100)
     }
-  }
-
-  // Handle payment method selection
-  const handlePaymentMethodSelect = (method: string) => {
-    setPaymentMethod(method)
-  }
-
-  // Handle payment step completion
-  const handlePaymentSubmit = () => {
-    setActiveSection("review")
-    setTimeout(() => {
-      const element = document.getElementById("review")
-      if (element) {
-        const yOffset = -20
-        const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset
-        window.scrollTo({ top: y, behavior: "smooth" })
-      }
-    }, 100)
   }
 
   // Form submission handler
@@ -1261,6 +1240,23 @@ export default function GuestCheckoutPage() {
                             >
                               Back
                             </button>
+                            {deliveryZone && zoneConfirmed ? (
+                              <button
+                                type="button"
+                                onClick={() => setActiveSection("review")}
+                                className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-md font-medium transition-colors"
+                              >
+                                Continue to Review
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setActiveSection("zimbabwe")}
+                                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+                              >
+                                Back
+                              </button>
+                            )}
                           </div>
                         </div>
                       </motion.div>
@@ -1284,108 +1280,6 @@ export default function GuestCheckoutPage() {
                 </div>
               )}
 
-              {/* Payment Method Section */}
-              <div
-                id="payment"
-                className={`bg-white rounded-xl overflow-hidden shadow-sm border ${
-                  activeSection === "payment" ? "border-teal-300 ring-1 ring-teal-300" : "border-gray-200"
-                } transition-all duration-200`}
-              >
-                <div
-                  className={`px-6 py-4 ${
-                    activeSection === "payment"
-                      ? "bg-gradient-to-r from-teal-500 to-teal-600"
-                      : "bg-gradient-to-r from-gray-100 to-gray-200"
-                  } transition-all duration-200`}
-                >
-                  <button
-                    type="button"
-                    onClick={() => setActiveSection("payment")}
-                    className="w-full text-left flex items-center justify-between"
-                    disabled={
-                      (showMap && country === "Zimbabwe" && (!deliveryZone || !zoneConfirmed)) ||
-                      !zim_name ||
-                      !zim_contact ||
-                      !zim_contact_id ||
-                      !!errors.zim_name ||
-                      !!errors.zim_contact ||
-                      !!errors.zim_contact_id
-                    }
-                  >
-                    <h3
-                      className={`text-lg font-medium flex items-center ${activeSection === "payment" ? "text-white" : "text-gray-700"}`}
-                    >
-                      <span className="flex items-center justify-center w-8 h-8 rounded-full bg-white text-teal-600 mr-3 font-bold">
-                        5
-                      </span>
-                      Payment Method
-                    </h3>
-                    {activeSection !== "payment" && (
-                      <div className="flex items-center">
-                        {paymentMethod ? (
-                          <CheckCircle2 className="h-5 w-5 text-green-500 mr-2" />
-                        ) : (
-                          <AlertCircle className="h-5 w-5 text-amber-500 mr-2" />
-                        )}
-                        <ChevronDown
-                          className={`h-5 w-5 ${activeSection === "payment" ? "text-white" : "text-gray-500"}`}
-                        />
-                      </div>
-                    )}
-                  </button>
-                </div>
-
-                <AnimatePresence>
-                  {activeSection === "payment" && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.3 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="p-6">
-                        <PaymentMethodSelector
-                          onSelect={handlePaymentMethodSelect}
-                          isSubmitting={isSubmitting}
-                          selectedMethod={paymentMethod}
-                        />
-
-                        <div className="mt-6 flex justify-between">
-                          <button
-                            type="button"
-                            onClick={() => setActiveSection("delivery")}
-                            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
-                          >
-                            Back
-                          </button>
-                          <button
-                            type="button"
-                            onClick={handlePaymentSubmit}
-                            className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-md font-medium transition-colors"
-                          >
-                            Continue to Review
-                          </button>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {activeSection !== "payment" && paymentMethod && (
-                  <div className="px-6 py-3 bg-gray-50 border-t border-gray-200">
-                    <div className="text-sm text-gray-700 flex items-center">
-                      <CreditCard className="h-4 w-4 text-gray-500 mr-2" />
-                      <span>
-                        {paymentMethod === "credit_card" && "Credit/Debit Card (Stripe)"}
-                        {paymentMethod === "apple_pay" && "Apple Pay (via Stripe)"}
-                        {paymentMethod === "google_pay" && "Google Pay (via Stripe)"}
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-
               {/* Order Review Section */}
               <div
                 id="review"
@@ -1406,7 +1300,6 @@ export default function GuestCheckoutPage() {
                     className="w-full text-left flex items-center justify-between"
                     disabled={
                       (showMap && country === "Zimbabwe" && (!deliveryZone || !zoneConfirmed)) ||
-                      !paymentMethod ||
                       !zim_name ||
                       !zim_contact ||
                       !zim_contact_id ||
@@ -1419,7 +1312,7 @@ export default function GuestCheckoutPage() {
                       className={`text-lg font-medium flex items-center ${activeSection === "review" ? "text-white" : "text-gray-700"}`}
                     >
                       <span className="flex items-center justify-center w-8 h-8 rounded-full bg-white text-teal-600 mr-3 font-bold">
-                        6
+                        5
                       </span>
                       Review & Submit
                     </h3>
@@ -1508,20 +1401,6 @@ export default function GuestCheckoutPage() {
                               </div>
                             </div>
                           )}
-
-                          <div>
-                            <h4 className="font-medium text-gray-900 mb-2">Payment Method</h4>
-                            <div className="bg-gray-50 rounded-lg p-4">
-                              <div className="flex items-center">
-                                <CreditCard className="h-4 w-4 text-gray-500 mr-2" />
-                                <span className="text-gray-700">
-                                  {paymentMethod === "credit_card" && "Credit/Debit Card (Stripe)"}
-                                  {paymentMethod === "apple_pay" && "Apple Pay (via Stripe)"}
-                                  {paymentMethod === "google_pay" && "Google Pay (via Stripe)"}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
 
                           {/* Order Items */}
                           <div>
