@@ -691,7 +691,12 @@ export default function CheckoutForm({ initialValues, onSubmit, isSubmitting }: 
               </h3>
               {activeSection !== "zimbabwe" && (
                 <div className="flex items-center">
-                  {zim_name && zim_contact && !errors.zim_name && !errors.zim_contact ? (
+                  {zim_name &&
+                  zim_contact &&
+                  zim_contact_id &&
+                  !errors.zim_name &&
+                  !errors.zim_contact &&
+                  !errors.zim_contact_id ? (
                     <CheckCircle2 className="h-5 w-5 text-green-500 mr-2" />
                   ) : (
                     <AlertCircle className="h-5 w-5 text-amber-500 mr-2" />
@@ -885,7 +890,14 @@ export default function CheckoutForm({ initialValues, onSubmit, isSubmitting }: 
                 type="button"
                 onClick={() => setActiveSection("delivery")}
                 className="w-full text-left flex items-center justify-between"
-                disabled={!zim_name || !zim_contact || !!errors.zim_name || !!errors.zim_contact}
+                disabled={
+                  !zim_name ||
+                  !zim_contact ||
+                  !zim_contact_id ||
+                  !!errors.zim_name ||
+                  !!errors.zim_contact ||
+                  !!errors.zim_contact_id
+                }
               >
                 <h3
                   className={`text-lg font-medium flex items-center ${activeSection === "delivery" ? "text-white" : "text-gray-700"}`}
@@ -1058,8 +1070,10 @@ export default function CheckoutForm({ initialValues, onSubmit, isSubmitting }: 
                 (showMap && country === "Zimbabwe" && (!deliveryZone || !zoneConfirmed)) ||
                 !zim_name ||
                 !zim_contact ||
+                !zim_contact_id ||
                 !!errors.zim_name ||
-                !!errors.zim_contact
+                !!errors.zim_contact ||
+                !!errors.zim_contact_id
               }
             >
               <h3

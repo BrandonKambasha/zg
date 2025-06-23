@@ -9,19 +9,15 @@ import Link from "next/link"
 import toast from "react-hot-toast"
 import {
   ChevronLeft,
-  CreditCard,
   ShieldCheck,
   CheckCircle2,
-  ArrowRight,
   ShoppingBag,
   Package,
-  CreditCardIcon as PaymentIcon,
   CheckSquare,
   ChevronUp,
   ChevronDown,
 } from "lucide-react"
 import CheckoutForm from "../components/CheckoutForm"
-import PaymentMethodSelector from "../components/PaymentMethodSelector"
 import OrderSummary from "../components/OrderSummary"
 import { createOrder } from "../lib/api/orders"
 import { createCheckoutSession, handleCheckoutCancellation } from "../lib/api/stripe"
@@ -75,7 +71,7 @@ function CheckoutContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [step, setStep] = useState(1) // 1: Shipping, 2: Payment, 3: Review
+  const [step, setStep] = useState(1) // 1: Shipping, 2: Review
   const [shippingInfo, setShippingInfo] = useState<ShippingInfo>({
     fullName: "",
     email: "",
@@ -92,7 +88,6 @@ function CheckoutContent() {
     exact_distance: null,
     exact_fee: null,
   })
-  const [paymentMethod, setPaymentMethod] = useState("credit_card")
   const [orderId, setOrderId] = useState<number | null>(null)
   const [zoneConfirmed, setZoneConfirmed] = useState(false)
   const [isZoneUpdate, setIsZoneUpdate] = useState(false)
@@ -213,25 +208,13 @@ function CheckoutContent() {
       updatedData.phone &&
       updatedData.delivery_zone &&
       updatedData.zim_name &&
-      updatedData.zim_contact&&
+      updatedData.zim_contact &&
       updatedData.zim_contact_id
-
     ) {
-      // Immediately proceed to the payment step
+      // Immediately proceed to the review step
       setStep(2)
       window.scrollTo({ top: 0, behavior: "smooth" })
     }
-  }
-
-  // In the handlePaymentMethodSelect function, update it to properly set the payment method
-  const handlePaymentMethodSelect = (method: string) => {
-    setPaymentMethod(method)
-  }
-
-  const handlePaymentSubmit = (method: string, data: any = {}) => {
-    setPaymentMethod(method)
-    setStep(3)
-    window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
   const handleCreateOrder = async () => {
@@ -250,7 +233,7 @@ function CheckoutContent() {
         phone_number: shippingInfo.phone,
         payment_method: "credit_card", // Always use credit_card for Stripe
         zim_name: shippingInfo.zim_name,
-        zim_contact_id: shippingInfo.zim_contact_id, 
+        zim_contact_id: shippingInfo.zim_contact_id,
         delivery_zone:
           shippingInfo.exact_fee ||
           (shippingInfo.delivery_zone ? getShippingCost(shippingInfo.delivery_zone, null) : SHIPPING_COST),
@@ -325,8 +308,6 @@ function CheckoutContent() {
       case 1:
         return <Package className="h-5 w-5" />
       case 2:
-        return <PaymentIcon className="h-5 w-5" />
-      case 3:
         return <CheckSquare className="h-5 w-5" />
       default:
         return null
@@ -385,7 +366,7 @@ function CheckoutContent() {
 
       {/* Checkout Progress - Desktop */}
       <div className="hidden sm:block mb-10 bg-white rounded-xl p-4 shadow-sm">
-        <div className="flex items-center justify-between max-w-3xl mx-auto">
+        <div className="flex items-center justify-between max-w-2xl mx-auto">
           <div className="flex flex-col items-center cursor-pointer group" onClick={() => setStep(1)}>
             <div
               className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
@@ -414,25 +395,7 @@ function CheckoutContent() {
             >
               2
             </div>
-            <span className={`text-sm mt-2 ${step === 2 ? "font-medium" : ""} group-hover:text-teal-700`}>Payment</span>
-          </div>
-          <div className={`flex-1 h-1 mx-2 ${step >= 3 ? "bg-teal-600" : "bg-gray-200"}`}></div>
-          <div
-            className={`flex flex-col items-center cursor-pointer group ${
-              step < 3 && (!paymentMethod || step === 1) ? "opacity-50 pointer-events-none" : ""
-            }`}
-            onClick={() => {
-              if (step >= 3 || (deliveryZone && paymentMethod)) setStep(3)
-            }}
-          >
-            <div
-              className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-                step >= 3 ? "bg-teal-600 text-white" : "bg-gray-200 text-gray-600 group-hover:bg-gray-300"
-              }`}
-            >
-              3
-            </div>
-            <span className={`text-sm mt-2 ${step === 3 ? "font-medium" : ""} group-hover:text-teal-700`}>Review</span>
+            <span className={`text-sm mt-2 ${step === 2 ? "font-medium" : ""} group-hover:text-teal-700`}>Review</span>
           </div>
         </div>
       </div>
@@ -441,24 +404,15 @@ function CheckoutContent() {
       <div className="sm:hidden mb-6">
         <div className="bg-white rounded-xl p-4 shadow-sm">
           <div className="flex items-center justify-between">
-            {[1, 2, 3].map((stepNumber) => (
+            {[1, 2].map((stepNumber) => (
               <div
                 key={stepNumber}
                 className={`flex flex-col items-center ${
                   stepNumber === step ? "text-teal-600" : stepNumber < step ? "text-gray-500" : "text-gray-300"
-                } ${
-                  (stepNumber === 2 && !deliveryZone && step === 1) ||
-                  (stepNumber === 3 && (!paymentMethod || step === 1))
-                    ? "opacity-50"
-                    : "cursor-pointer"
-                }`}
+                } ${stepNumber === 2 && !deliveryZone && step === 1 ? "opacity-50" : "cursor-pointer"}`}
                 onClick={() => {
                   // Apply the same navigation logic as desktop
-                  if (
-                    (stepNumber === 2 && (step >= 2 || deliveryZone)) ||
-                    (stepNumber === 3 && (step >= 3 || (deliveryZone && paymentMethod))) ||
-                    stepNumber === 1
-                  ) {
+                  if ((stepNumber === 2 && (step >= 2 || deliveryZone)) || stepNumber === 1) {
                     setStep(stepNumber)
                     window.scrollTo({ top: 0, behavior: "smooth" })
                   }
@@ -475,15 +429,12 @@ function CheckoutContent() {
                 >
                   {getStepIcon(stepNumber)}
                 </div>
-                <span className="text-xs mt-1 font-medium">
-                  {stepNumber === 1 ? "Shipping" : stepNumber === 2 ? "Payment" : "Review"}
-                </span>
+                <span className="text-xs mt-1 font-medium">{stepNumber === 1 ? "Shipping" : "Review"}</span>
               </div>
             ))}
           </div>
           <div className="flex mt-2">
             <div className={`h-1 flex-1 ${step > 1 ? "bg-teal-600" : "bg-gray-200"}`}></div>
-            <div className={`h-1 flex-1 ${step > 2 ? "bg-teal-600" : "bg-gray-200"}`}></div>
           </div>
         </div>
       </div>
@@ -496,35 +447,6 @@ function CheckoutContent() {
           )}
 
           {step === 2 && (
-            <div className="bg-white rounded-xl overflow-hidden shadow-md">
-              <div className="px-6 py-4 bg-gradient-to-r from-teal-500 to-teal-600 text-white">
-                <h2 className="text-lg font-medium flex items-center">
-                  <CreditCard className="h-5 w-5 mr-2" />
-                  Payment Method
-                </h2>
-              </div>
-              <div className="p-6">
-                <PaymentMethodSelector
-                  onSelect={handlePaymentMethodSelect}
-                  isSubmitting={isSubmitting}
-                  selectedMethod={paymentMethod}
-                />
-
-                <div className="mt-8">
-                  <button
-                    onClick={() => {
-                      handlePaymentSubmit(paymentMethod)
-                    }}
-                    className="w-full bg-gradient-to-r from-teal-500 to-teal-600 text-white py-4 rounded-lg hover:from-teal-600 hover:to-teal-700 transition-all transform hover:scale-[1.01] active:scale-[0.99] font-medium text-lg shadow-md flex items-center justify-center"
-                  >
-                    Continue to Review <ArrowRight className="ml-2 h-5 w-5" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {step === 3 && (
             <div className="bg-white rounded-xl overflow-hidden shadow-md">
               <div className="px-6 py-4 bg-gradient-to-r from-teal-500 to-teal-600 text-white">
                 <h2 className="text-lg font-medium flex items-center">
@@ -566,36 +488,6 @@ function CheckoutContent() {
                           {shippingInfo.exact_distance
                             ? `${shippingInfo.exact_distance.toFixed(1)}km from CBD`
                             : `Delivery Zone: ${shippingInfo.delivery_zone}`}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Payment Method */}
-                  <div>
-                    <div className="flex justify-between items-center mb-3">
-                      <h3 className="font-medium text-lg">Payment Method</h3>
-                      <button
-                        onClick={() => setStep(2)}
-                        className="text-xs px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition-colors"
-                      >
-                        Edit
-                      </button>
-                    </div>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      {paymentMethod === "credit_card" && (
-                        <div className="flex items-center">
-                          <p>Credit/Debit Card (Stripe)</p>
-                        </div>
-                      )}
-                      {paymentMethod === "apple_pay" && (
-                        <div className="flex items-center">
-                          <p>Apple Pay (via Stripe)</p>
-                        </div>
-                      )}
-                      {paymentMethod === "google_pay" && (
-                        <div className="flex items-center">
-                          <p>Google Pay (via Stripe)</p>
                         </div>
                       )}
                     </div>
