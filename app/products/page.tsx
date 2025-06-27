@@ -43,8 +43,9 @@ export default function ProductsPage() {
         const [productsData, categoriesData] = await Promise.all([getProducts(), getCategories()])
         setProducts(productsData || [])
         setProductCount(productsData?.length || 0)
-        setCategories(categoriesData || [])
-      } catch (error) {
+        const productCategories = (categoriesData || []).filter((category) => category.type === "product")
+        setCategories(productCategories)
+        } catch (error) {
         console.error("Failed to fetch data:", error)
       } finally {
         setIsLoading(false)
